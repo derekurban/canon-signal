@@ -1,0 +1,96 @@
+name: Publish to npm
+
+# Triggers when a version tag is pushed (e.g. `v0.1.0`, `v1.2.3`).
+# Runs the full pipeline (typecheck, tests, build) and then publishes
+# the package to npm with provenance attestations.
+#
+# Setup required (one-time, when the repo is first created):
+# 1. Generate an automation token at https://www.npmjs.com/settings/<your-user>/tokens/granular-access-tokens/new
+#    - Type: Granular Access Token
+#    - Permissions: Read and write for `canon-signal`
+# 2. Add it to the repo secrets as NPM_TOKEN:
+#    Settings → Secrets and variables → Actions → New repository secret
+# 3. The first publish must be done manually with `npm publish --access public`
+#    to claim the unscoped package name. Subsequent publishes can use this workflow.
+#
+# Releasing a new version:
+# 1. Update the version in package.json
+# 2. Update CHANGELOG.md
+# 3. Commit the changes
+# 4. Create and push a tag: `git tag v0.1.0 && git push origin v0.1.0`
+# 5. The workflow runs automatically.
+#
+# Manual trigger via workflow_dispatch is also supported for emergency releases.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (do not actually publish)'
+        type: boolean
+        default: false
+
+# Provenance requires id-token: write so OIDC can sign the build.
+# contents: read is needed to check out the repo.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Use the latest LTS for publishing — this Node version
+          # builds the package, it doesn't constrain consumers.
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify version matches tag
+        if: github.event_name == 'push'
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "Version matches: $PKG_VERSION"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test:run
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify package contents
+        run: npm pack --dry-run
+
+      - name: Publish to npm (dry run)
+        if: github.event.inputs.dry_run == 'true'
+        run: npm publish --dry-run --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm
+        if: github.event.inputs.dry_run != 'true'
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

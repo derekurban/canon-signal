@@ -1,0 +1,143 @@
+{
+  "name": "canon-signal",
+  "version": "0.1.0",
+  "description": "Opinionated OpenTelemetry toolkit for Node.js/TypeScript — trace-first observability with typed canonical span schemas",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./testing": {
+      "import": {
+        "types": "./dist/testing/index.d.ts",
+        "default": "./dist/testing/index.js"
+      },
+      "require": {
+        "types": "./dist/testing/index.d.cts",
+        "default": "./dist/testing/index.cjs"
+      }
+    },
+    "./bridges/pino": {
+      "import": {
+        "types": "./dist/bridges/pino.d.ts",
+        "default": "./dist/bridges/pino.js"
+      },
+      "require": {
+        "types": "./dist/bridges/pino.d.cts",
+        "default": "./dist/bridges/pino.cjs"
+      }
+    },
+    "./bridges/winston": {
+      "import": {
+        "types": "./dist/bridges/winston.d.ts",
+        "default": "./dist/bridges/winston.js"
+      },
+      "require": {
+        "types": "./dist/bridges/winston.d.cts",
+        "default": "./dist/bridges/winston.cjs"
+      }
+    },
+    "./auto": {
+      "import": {
+        "types": "./dist/auto.d.ts",
+        "default": "./dist/auto.js"
+      },
+      "require": {
+        "types": "./dist/auto.d.cts",
+        "default": "./dist/auto.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "bin",
+    "resources",
+    "CHANGELOG.md"
+  ],
+  "bin": {
+    "canon-signal": "./bin/canon-signal.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run test:run && npm run build"
+  },
+  "keywords": [
+    "opentelemetry",
+    "observability",
+    "tracing",
+    "telemetry",
+    "logging",
+    "metrics",
+    "otel"
+  ],
+  "license": "MIT",
+  "author": "derekurban2001",
+  "homepage": "https://github.com/derekurban2001/canon-signal#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derekurban2001/canon-signal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/derekurban2001/canon-signal/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api-logs": "^0.57.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.56.0",
+    "@opentelemetry/exporter-logs-otlp-proto": "^0.57.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.57.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.57.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/sdk-logs": "^0.57.0",
+    "@opentelemetry/sdk-metrics": "^1.30.0",
+    "@opentelemetry/sdk-node": "^0.57.0",
+    "@opentelemetry/sdk-trace-base": "^1.30.0",
+    "@opentelemetry/sdk-trace-node": "^1.30.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "hono": "^4.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0",
+    "fastify": ">=4.0.0",
+    "hono": ">=4.0.0",
+    "next": ">=14.0.0",
+    "pino": ">=8.0.0",
+    "winston": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "hono": { "optional": true },
+    "express": { "optional": true },
+    "fastify": { "optional": true },
+    "next": { "optional": true },
+    "pino": { "optional": true },
+    "winston": { "optional": true }
+  }
+}

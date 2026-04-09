@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>canon-signal — A trace-first observability tutorial</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elevated: #161b22;
+    --bg-code: #1c2128;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --text-bright: #f0f6fc;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #56d364;
+    --red: #f85149;
+    --yellow: #d29922;
+    --purple: #a371f7;
+    --pink: #ff7b72;
+    --string: #a5d6ff;
+    --comment: #8b949e;
+    --keyword: #ff7b72;
+    --function: #d2a8ff;
+    --type: #79c0ff;
+    --number: #79c0ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; scroll-padding-top: 1rem; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  aside {
+    background: var(--bg-elevated);
+    border-right: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  aside h1 {
+    font-size: 1.1rem;
+    color: var(--text-bright);
+    margin-bottom: 0.25rem;
+  }
+
+  aside .subtitle {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  aside nav ul {
+    list-style: none;
+  }
+
+  aside nav > ul > li {
+    margin-bottom: 0.5rem;
+  }
+
+  aside nav a {
+    display: block;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    transition: all 0.15s;
+  }
+
+  aside nav a:hover {
+    color: var(--text-bright);
+    background: var(--bg-code);
+  }
+
+  aside nav a.section {
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  aside nav .sublist {
+    list-style: none;
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid var(--border);
+  }
+
+  /* Main content */
+  main {
+    padding: 3rem 4rem;
+    max-width: 900px;
+  }
+
+  h1, h2, h3, h4 {
+    color: var(--text-bright);
+    line-height: 1.25;
+    scroll-margin-top: 1rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+    margin-top: 4rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  h3 {
+    font-size: 1.35rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--accent);
+  }
+
+  h4 {
+    font-size: 1.05rem;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-bright);
+  }
+
+  p {
+    margin-bottom: 1.25rem;
+  }
+
+  p, li {
+    color: var(--text);
+  }
+
+  strong {
+    color: var(--text-bright);
+    font-weight: 600;
+  }
+
+  em {
+    color: var(--text-bright);
+    font-style: italic;
+  }
+
+  code {
+    background: var(--bg-code);
+    color: var(--accent);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-family: "SF Mono", "Monaco", "Menlo", Consolas, "Courier New", monospace;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+  }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+  }
+
+  pre code {
+    background: transparent;
+    color: var(--text);
+    padding: 0;
+    border: none;
+    font-size: inherit;
+  }
+
+  /* Syntax highlighting */
+  .tok-keyword { color: var(--keyword); }
+  .tok-string { color: var(--string); }
+  .tok-comment { color: var(--comment); font-style: italic; }
+  .tok-function { color: var(--function); }
+  .tok-type { color: var(--type); }
+  .tok-number { color: var(--number); }
+  .tok-builtin { color: var(--type); }
+  .tok-property { color: var(--accent); }
+  .tok-operator { color: var(--pink); }
+
+  ul, ol {
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+  }
+
+  li {
+    margin-bottom: 0.4rem;
+  }
+
+  blockquote {
+    border-left: 4px solid var(--accent);
+    background: var(--bg-elevated);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text);
+  }
+
+  blockquote p:last-child {
+    margin-bottom: 0;
+  }
+
+  .callout {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .callout-warn {
+    border-left-color: var(--yellow);
+  }
+
+  .callout-bad {
+    border-left-color: var(--red);
+  }
+
+  .callout-good {
+    border-left-color: var(--green);
+  }
+
+  .callout-title {
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .person {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .person-name {
+    font-weight: 600;
+    color: var(--text-bright);
+    font-size: 1.05rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .person-affiliation {
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .trace-output {
+    background: #000;
+    color: var(--text);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 1.25rem 0;
+    font-family: "SF Mono", "Monaco", "Menlo", Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .trace-output .root { color: var(--green); font-weight: bold; }
+  .trace-output .root-error { color: var(--red); font-weight: bold; }
+  .trace-output .child { color: var(--text); }
+  .trace-output .duration { color: var(--text-muted); }
+  .trace-output .attr { color: var(--accent); }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    background: var(--bg-elevated);
+    color: var(--text-bright);
+    font-weight: 600;
+  }
+
+  td code {
+    font-size: 0.85em;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .lead {
+    font-size: 1.15rem;
+    color: var(--text);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .footer {
+    margin-top: 5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 900px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+    aside {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    main {
+      padding: 2rem 1.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<aside>
+  <h1>canon-signal</h1>
+  <p class="subtitle">A trace-first observability tutorial</p>
+
+  <nav>
+    <ul>
+      <li><a href="#start" class="section">Start here</a></li>
+      <li><a href="#problem">The 3am problem</a></li>
+      <li><a href="#shift">The mental shift</a></li>
+
+      <li><a href="#thinkers" class="section">Whose ideas</a></li>
+      <li><a href="#dapper">Dapper paper</a></li>
+      <li><a href="#stripe">Stripe canonical logs</a></li>
+      <li><a href="#wide-events">Wide events</a></li>
+      <li><a href="#otel">OpenTelemetry</a></li>
+
+      <li><a href="#why" class="section">Why canon-signal</a></li>
+      <li><a href="#raw-otel">vs. raw OTel</a></li>
+      <li><a href="#opinions">Opinionated layer</a></li>
+
+      <li><a href="#walkthrough" class="section">Walkthrough</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="#schema">First schema</a></li>
+      <li><a href="#middleware">Middleware</a></li>
+      <li><a href="#attr">First attribute</a></li>
+      <li><a href="#span">First child span</a></li>
+      <li><a href="#errors">Error handling</a></li>
+      <li><a href="#testing">Testing</a></li>
+
+      <li><a href="#constitution" class="section">Constitution</a></li>
+      <li><a href="#principles">Core principles</a></li>
+      <li><a href="#rules">Practical rules</a></li>
+
+      <li><a href="#next" class="section">Where next</a></li>
+      <li><a href="#further">Further reading</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<main>
+
+<h1>canon-signal</h1>
+<p class="lead">An opinionated, trace-first observability toolkit for TypeScript. This tutorial assumes you've never thought about observability before. Read it once and you'll understand both the philosophy and the practice.</p>
+
+<hr>
+
+<h2 id="start">Start here</h2>
+
+<h3 id="problem">The 3am problem</h3>
+
+<p>It's 3am. You're the on-call engineer. PagerDuty just woke you up because the checkout endpoint is throwing 500 errors for 0.4% of requests. The dashboard shows the spike started 20 minutes ago. Your job is to figure out what's broken before the on-call shift ends.</p>
+
+<p>You SSH into the production server and start tailing logs:</p>
+
+<pre><code><span class="tok-number">2026-04-09 03:14:22</span> Checkout started
+<span class="tok-number">2026-04-09 03:14:22</span> Cart total: 4999
+<span class="tok-number">2026-04-09 03:14:22</span> Checkout started
+<span class="tok-number">2026-04-09 03:14:22</span> User: usr_abc
+<span class="tok-number">2026-04-09 03:14:23</span> Payment provider response received
+<span class="tok-number">2026-04-09 03:14:23</span> Cart total: 12500
+<span class="tok-number">2026-04-09 03:14:23</span> Checkout failed: undefined
+<span class="tok-number">2026-04-09 03:14:23</span> User: usr_xyz
+<span class="tok-number">2026-04-09 03:14:23</span> Checkout completed</code></pre>
+
+<p>You can't tell which lines belong to which request. You can't tell <em>which</em> request failed or <em>why</em>. The error message says <code>undefined</code>. You don't know which user, which cart, which payment provider, which version of the code. You're guessing.</p>
+
+<p>This is the problem observability solves. Specifically: <strong>observability is the discipline of producing your telemetry in such a way that 3am-you can actually answer questions, instead of guessing.</strong></p>
+
+<h3 id="shift">The mental shift: from logs to traces</h3>
+
+<p>The traditional approach is to log everything. Every interesting moment becomes a <code>console.log</code> call. The reasoning is "if I log enough, I'll be able to reconstruct what happened." This sounds reasonable until you try to do it at 3am.</p>
+
+<p>The trace-first approach inverts this. Instead of scattered log lines, you produce <strong>one structured record per request</strong>. That record (called a <em>root span</em>) contains everything you might want to query later: who, what, when, where, how long, succeeded or failed. Sub-operations during the request become <em>child spans</em>, which give you a duration breakdown. The whole thing is called a <strong>trace</strong>.</p>
+
+<p>Visually, a trace looks like this:</p>
+
+<div class="trace-output">
+<span class="root">POST /checkout</span>  <span class="duration">200  847ms</span>
+ ├─ <span class="child">auth.verify</span>  <span class="duration">12ms</span>
+ ├─ <span class="child">db.query SELECT users</span>  <span class="duration">3ms</span>
+ ├─ <span class="child">payment.process</span>  <span class="duration">780ms</span>
+ │  └─ <span class="child">https.fetch stripe.com</span>  <span class="duration">750ms</span>
+ └─ <span class="child">db.insert orders</span>  <span class="duration">28ms</span>
+ └─ <span class="attr">user.id=usr_abc  customer.tier=enterprise</span>
+</div>
+
+<p>You read this top-down: a <code>POST /checkout</code> request returned 200 in 847ms. Inside it, auth verified in 12ms, a database lookup took 3ms, payment processing took 780ms (most of which was a Stripe API call), and the order was inserted in 28ms. The root span carries the user ID and customer tier as attributes.</p>
+
+<p>If something went wrong, the trace would show the failed span in red, with the exception attached. You can immediately see <em>where</em> things broke and <em>why</em>, without guessing.</p>
+
+<p>The mental shift is: <strong>traces are the source of truth, and logs are a backup.</strong> Anything you would have logged during a request should probably be an attribute on the trace's root span instead.</p>
+
+<hr>
+
+<h2 id="thinkers">The people whose ideas shaped this</h2>
+
+<p>canon-signal isn't an original invention. It's the synthesis of ideas that have been refined for over 15 years across distributed systems research, production engineering, and the open-source telemetry community. Before we get to the code, here are the practitioners and papers whose thinking directly informs canon-signal's design.</p>
+
+<h3 id="dapper">Ben Sigelman, Yonatan Zunger, and the Dapper paper (Google, 2010)</h3>
+
+<div class="person">
+  <div class="person-name">Dapper, a Large-Scale Distributed Systems Tracing Infrastructure</div>
+  <div class="person-affiliation">Google Research, 2010 — the paper that started it all</div>
+  <p>Google's Dapper paper introduced distributed tracing as an industry concept. It described how Google instrumented every service across its production fleet so engineers could follow a single request from the load balancer through dozens of backends. The paper introduced the vocabulary we still use: <em>trace</em>, <em>span</em>, <em>annotation</em>, <em>sampling</em>. Every modern observability tool — Jaeger, Zipkin, Honeycomb, Datadog APM, OpenTelemetry — descends from Dapper.</p>
+  <p>Ben Sigelman went on to co-found LightStep (acquired by ServiceNow) and to be a co-author of the OpenTracing and OpenTelemetry standards. canon-signal builds on the Dapper model: traces are trees of spans, spans have parents and durations and attributes, and the whole tree describes one unit of work.</p>
+</div>
+
+<h3 id="stripe">Brandur Leach (Stripe, 2016)</h3>
+
+<div class="person">
+  <div class="person-name">Brandur Leach — Canonical Log Lines</div>
+  <div class="person-affiliation">Stripe Engineering Blog, 2016</div>
+  <p>Stripe's engineering team observed that scattered log lines were impossible to query, so they invented "canonical log lines": <strong>one rich, structured log entry per request</strong>, containing every dimension you might want to filter or group by. User ID, customer tier, request path, response code, latency, payment provider, error code — all on one line per request.</p>
+  <p>The canonical log line was a workaround for the limitations of log-based observability before traces were widely available. The insight: if you can only have one observable artifact per request, make it as wide as possible.</p>
+  <p>canon-signal takes this idea seriously. Our root span <em>is</em> Stripe's canonical log line, with the structural superpowers of tracing layered on top. The attributes you set via <code>signal.attr()</code> are the canonical fields. The TypeScript interface that declares them is the schema Stripe wished they had.</p>
+</div>
+
+<h3 id="wide-events">Charity Majors and the wide-events crowd (Honeycomb, 2018+)</h3>
+
+<div class="person">
+  <div class="person-name">Charity Majors, Liz Fong-Jones, and the Honeycomb team</div>
+  <div class="person-affiliation">Honeycomb.io — wide events, "Observability 2.0"</div>
+  <p>Charity Majors has been the most prominent advocate for what she calls "Observability 2.0": the shift from <em>monitoring known questions</em> (CPU above 80%? error rate above 1%?) to <em>asking arbitrary questions</em> about your system's behavior. The vehicle for this is the <strong>wide event</strong>: a single record per unit of work containing dozens or hundreds of dimensions.</p>
+  <p>The argument against logs-first observability: logs are optimized for writing (easy to add a <code>printf</code>), not for querying. Wide events flip that — they're harder to write (you need to think about what dimensions matter) but trivial to query later. At 3am, querying matters more than writing.</p>
+  <p>canon-signal's typed schema is the "you need to think about what dimensions matter" step, enforced at compile time so you can't skip it.</p>
+</div>
+
+<h3 id="practitioners">Jeremy Morrell, Ivan Burmistrov, Boris Tane</h3>
+
+<div class="person">
+  <div class="person-name">Jeremy Morrell — A Practitioner's Guide to Wide Events</div>
+  <div class="person-affiliation">jeremymorrell.dev, 2024</div>
+  <p>Jeremy's guide is the most thorough practical treatment of how to actually implement wide events in a production codebase. He covers the schema design questions, the cardinality tradeoffs, the sampling implications, and the failure modes. canon-signal's middleware-and-attributes pattern follows his recommendations almost exactly.</p>
+</div>
+
+<div class="person">
+  <div class="person-name">Ivan Burmistrov — All You Need Is Wide Events</div>
+  <div class="person-affiliation">isburmistrov.substack.com, 2024</div>
+  <p>Ivan worked on Meta's internal observability system, Scuba, which is built entirely around wide events. His writing makes the case that wide events alone — without separate metrics or logs — can answer 95% of operational questions. canon-signal doesn't go quite that far (we still use metrics for infrastructure-style time series and logs for audit-level events) but the philosophy is the same: traces are the primary signal, and their attributes are the queryable surface.</p>
+</div>
+
+<div class="person">
+  <div class="person-name">Boris Tane — Logging Sucks</div>
+  <div class="person-affiliation">loggingsucks.com, 2024</div>
+  <p>Boris's site is a direct, concrete argument for why traditional logging fails at scale and how wide events fix it. It's the most accessible introduction to the philosophical shift if you're skeptical of "yet another observability framework." Worth reading if you want to be convinced before investing time in canon-signal.</p>
+</div>
+
+<h3 id="otel">The OpenTelemetry community (CNCF)</h3>
+
+<div class="person">
+  <div class="person-name">OpenTelemetry — the standardized SDK and protocol</div>
+  <div class="person-affiliation">CNCF, 2019–present</div>
+  <p>OpenTelemetry (OTel) is the open-source standard for emitting telemetry from applications. It's the successor to OpenTracing and OpenCensus, unified under one specification. Every major observability vendor (Honeycomb, Datadog, Grafana, New Relic, Splunk) supports OpenTelemetry, which means you can instrument your code once and send it anywhere.</p>
+  <p>canon-signal is built <em>on top of</em> OpenTelemetry, not as a replacement. We use the OTel SDK for span creation, context propagation, and export. What we add is opinion: a typed schema, automatic middleware, ambient context propagation, sampling rules, a test harness, and CLI tooling. If you outgrow canon-signal, the underlying spans are standard OTel and you can migrate to using the SDK directly.</p>
+</div>
+
+<hr>
+
+<h2 id="why">Why canon-signal specifically</h2>
+
+<h3 id="raw-otel">vs. raw OpenTelemetry</h3>
+
+<p>If you've ever tried to set up OpenTelemetry in a Node.js project, you know the experience. You start by installing thirteen packages:</p>
+
+<pre><code><span class="tok-keyword">npm install</span> @opentelemetry/api @opentelemetry/sdk-node @opentelemetry/sdk-trace-base \
+  @opentelemetry/sdk-trace-node @opentelemetry/exporter-trace-otlp-proto \
+  @opentelemetry/resources @opentelemetry/semantic-conventions \
+  @opentelemetry/auto-instrumentations-node @opentelemetry/sdk-metrics \
+  @opentelemetry/exporter-metrics-otlp-proto @opentelemetry/sdk-logs \
+  @opentelemetry/api-logs @opentelemetry/exporter-logs-otlp-proto</code></pre>
+
+<p>Then you write a hundred-plus lines of provider setup, processor configuration, and resource declaration. Then you finally get to call <code>tracer.startActiveSpan()</code> in your handler. And nothing in that setup tells you <em>how</em> to instrument well — what attributes to use, how to handle errors, how to keep span names low-cardinality, how to test that your instrumentation didn't drift in the last refactor.</p>
+
+<p>Six months later, your codebase has 47 different ways of recording <code>userId</code>, half your handlers are missing critical attributes, your span names are high-cardinality time bombs, and nobody knows whether the instrumentation is even still working.</p>
+
+<h3 id="opinions">canon-signal: the opinionated layer</h3>
+
+<p>canon-signal's pitch is simple: <strong>one package, one factory call, an enforced schema, and automatic everything.</strong></p>
+
+<pre><code><span class="tok-keyword">npm install</span> canon-signal</code></pre>
+
+<p>That's the entire install. Then you write one setup file:</p>
+
+<pre><code><span class="tok-comment">// src/signal.ts</span>
+<span class="tok-keyword">import</span> { createSignal, type SignalAttributes } <span class="tok-keyword">from</span> <span class="tok-string">'canon-signal'</span>
+
+<span class="tok-keyword">interface</span> <span class="tok-type">AppAttributes</span> <span class="tok-keyword">extends</span> <span class="tok-type">SignalAttributes</span> {
+  <span class="tok-string">'app.user.id'</span>?: <span class="tok-type">string</span>
+  <span class="tok-string">'app.customer.tier'</span>?: <span class="tok-string">'free'</span> | <span class="tok-string">'pro'</span> | <span class="tok-string">'enterprise'</span>
+}
+
+<span class="tok-keyword">export const</span> signal = <span class="tok-function">createSignal</span>&lt;<span class="tok-type">AppAttributes</span>&gt;({
+  service: { name: <span class="tok-string">'my-app'</span>, version: <span class="tok-string">'1.0.0'</span>, environment: <span class="tok-string">'production'</span> },
+  schema: { version: <span class="tok-string">'1.0.0'</span> },
+})</code></pre>
+
+<p>You now have a fully-configured observability system with:</p>
+
+<ul>
+  <li>A typed <code>signal.attr()</code> that won't compile if you misspell an attribute name</li>
+  <li>Ambient context propagation (no passing loggers around)</li>
+  <li>Auto-instrumentation for HTTP, databases, Redis, gRPC, and queues — all 37 OTel auto-instrumentations</li>
+  <li>A custom tail-sampling processor that always keeps errors and slow requests</li>
+  <li>A test harness with typed assertions</li>
+  <li>Pretty waterfall rendering in development, OTLP export in production</li>
+  <li>A processor that automatically computes <code>app.db.total_duration_ms</code> on every root span</li>
+</ul>
+
+<p>The opinions are the value. canon-signal gets you to <em>"correct telemetry by default"</em> in one step instead of dozens.</p>
+
+<hr>
+
+<h2 id="walkthrough">Hands-on walkthrough</h2>
+
+<p>Let's build a real Hono app with canon-signal from scratch. Each step explains the <em>why</em>, not just the <em>what</em>.</p>
+
+<h3 id="install">Step 1: Install</h3>
+
+<pre><code>mkdir my-app && cd my-app
+npm init -y
+npm install hono @hono/node-server canon-signal
+npm install -D typescript @types/node tsx vitest</code></pre>
+
+<p>Create a minimal <code>tsconfig.json</code>:</p>
+
+<pre><code>{
+  <span class="tok-string">"compilerOptions"</span>: {
+    <span class="tok-string">"target"</span>: <span class="tok-string">"ES2022"</span>,
+    <span class="tok-string">"module"</span>: <span class="tok-string">"ESNext"</span>,
+    <span class="tok-string">"moduleResolution"</span>: <span class="tok-string">"bundler"</span>,
+    <span class="tok-string">"strict"</span>: <span class="tok-keyword">true</span>,
+    <span class="tok-string">"esModuleInterop"</span>: <span class="tok-keyword">true</span>,
+    <span class="tok-string">"skipLibCheck"</span>: <span class="tok-keyword">true</span>
+  }
+}</code></pre>
+
+<h3 id="schema">Step 2: Define your schema</h3>
+
+<p>Create <code>src/signal.ts</code>. This is the only place you configure canon-signal for your entire app.</p>
+
+<pre><code><span class="tok-comment">// src/signal.ts</span>
+<span class="tok-keyword">import</span> { createSignal, type SignalAttributes } <span class="tok-keyword">from</span> <span class="tok-string">'canon-signal'</span>
+
+<span class="tok-comment">// Step 1: Declare the attributes your app will emit.</span>
+<span class="tok-comment">// The TypeScript interface is the contract. You cannot set</span>
+<span class="tok-comment">// an attribute that isn't listed here.</span>
+<span class="tok-keyword">interface</span> <span class="tok-type">AppAttributes</span> <span class="tok-keyword">extends</span> <span class="tok-type">SignalAttributes</span> {
+  <span class="tok-string">'app.user.id'</span>?: <span class="tok-type">string</span>
+  <span class="tok-string">'app.customer.tier'</span>?: <span class="tok-string">'free'</span> | <span class="tok-string">'pro'</span> | <span class="tok-string">'enterprise'</span>
+  <span class="tok-string">'app.transaction.type'</span>?: <span class="tok-string">'checkout'</span> | <span class="tok-string">'refund'</span>
+  <span class="tok-string">'app.error.code'</span>?: <span class="tok-type">string</span>
+}
+
+<span class="tok-comment">// Step 2: Create the signal instance. This initializes the OTel SDK,</span>
+<span class="tok-comment">// registers auto-instrumentation, wires up the test harness, and</span>
+<span class="tok-comment">// returns a fully-typed object.</span>
+<span class="tok-keyword">export const</span> signal = <span class="tok-function">createSignal</span>&lt;<span class="tok-type">AppAttributes</span>&gt;({
+  service: {
+    name: <span class="tok-string">'my-app'</span>,
+    version: <span class="tok-string">'1.0.0'</span>,
+    environment: process.env.<span class="tok-property">NODE_ENV</span> ?? <span class="tok-string">'development'</span>,
+  },
+  schema: { version: <span class="tok-string">'1.0.0'</span> },
+  <span class="tok-comment">// Show a colored waterfall in the terminal during development</span>
+  export: {
+    traces: [{ type: <span class="tok-string">'pretty-console'</span> }],
+  },
+})</code></pre>
+
+<p>That's your entire observability setup. Note three things about it:</p>
+
+<ol>
+  <li><strong>The interface is the schema.</strong> Adding a new attribute later means editing this interface first. There's no runtime workaround.</li>
+  <li><strong>Optional vs required.</strong> The <code>?</code> means optional. Non-optional properties are attributes that <em>must</em> be present on every root span (and the test harness enforces it).</li>
+  <li><strong>One signal per service.</strong> You export this from one file and import the same instance everywhere.</li>
+</ol>
+
+<h3 id="middleware">Step 3: Register middleware</h3>
+
+<p>Create <code>src/server.ts</code>:</p>
+
+<pre><code><span class="tok-comment">// src/server.ts</span>
+<span class="tok-keyword">import</span> { Hono } <span class="tok-keyword">from</span> <span class="tok-string">'hono'</span>
+<span class="tok-keyword">import</span> { serve } <span class="tok-keyword">from</span> <span class="tok-string">'@hono/node-server'</span>
+<span class="tok-keyword">import</span> { signal } <span class="tok-keyword">from</span> <span class="tok-string">'./signal'</span>
+
+<span class="tok-keyword">const</span> app = <span class="tok-keyword">new</span> <span class="tok-function">Hono</span>()
+
+<span class="tok-comment">// Register canon-signal's middleware FIRST, before any routes.</span>
+<span class="tok-comment">// This is what creates the request scope — the magic that lets</span>
+<span class="tok-comment">// signal.attr() work from anywhere in your code without passing</span>
+<span class="tok-comment">// arguments around.</span>
+app.<span class="tok-function">use</span>(<span class="tok-string">'*'</span>, signal.<span class="tok-function">middleware</span>())
+
+app.<span class="tok-function">get</span>(<span class="tok-string">'/hello'</span>, (c) =&gt; {
+  <span class="tok-keyword">return</span> c.<span class="tok-function">json</span>({ message: <span class="tok-string">'Hello, world!'</span> })
+})
+
+<span class="tok-function">serve</span>({ fetch: app.fetch, port: <span class="tok-number">3000</span> })
+console.<span class="tok-function">log</span>(<span class="tok-string">'Server running on http://localhost:3000'</span>)</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>npx tsx src/server.ts</code></pre>
+
+<p>And in another terminal:</p>
+
+<pre><code>curl http://localhost:3000/hello</code></pre>
+
+<p>In your server terminal you'll see something like:</p>
+
+<div class="trace-output">
+<span class="root">GET /hello</span>  <span class="duration">200  3ms</span>
+</div>
+
+<p>That's your first trace, rendered as a waterfall. Right now it has no attributes — let's add some.</p>
+
+<h3 id="attr">Step 4: Set attributes</h3>
+
+<p>Update the handler:</p>
+
+<pre><code>app.<span class="tok-function">get</span>(<span class="tok-string">'/hello'</span>, (c) =&gt; {
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.user.id'</span>, <span class="tok-string">'usr_alice'</span>)
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.customer.tier'</span>, <span class="tok-string">'enterprise'</span>)
+  <span class="tok-keyword">return</span> c.<span class="tok-function">json</span>({ message: <span class="tok-string">'Hello, world!'</span> })
+})</code></pre>
+
+<p>Hit it again:</p>
+
+<div class="trace-output">
+<span class="root">GET /hello</span>  <span class="duration">200  3ms</span>
+ └─ <span class="attr">user.id=usr_alice  customer.tier=enterprise</span>
+</div>
+
+<p>The attributes appear at the bottom of the trace. They're now on the root span and queryable in any backend.</p>
+
+<div class="callout callout-warn">
+<span class="callout-title">Try this</span>
+<p>Add <code>signal.attr('app.bogus', 'value')</code> to the handler. TypeScript will refuse to compile because <code>'app.bogus'</code> isn't in your <code>AppAttributes</code> interface. <strong>This is the schema enforcing itself.</strong> The contract is the interface, and the compiler is the enforcer.</p>
+</div>
+
+<h3 id="span">Step 5: Add a child span</h3>
+
+<p>Let's simulate a database lookup with a child span:</p>
+
+<pre><code>app.<span class="tok-function">get</span>(<span class="tok-string">'/hello'</span>, <span class="tok-keyword">async</span> (c) =&gt; {
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.user.id'</span>, <span class="tok-string">'usr_alice'</span>)
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.customer.tier'</span>, <span class="tok-string">'enterprise'</span>)
+
+  <span class="tok-keyword">await</span> signal.<span class="tok-function">span</span>(<span class="tok-string">'db.user.lookup'</span>, <span class="tok-keyword">async</span> (span) =&gt; {
+    span.<span class="tok-function">setAttribute</span>(<span class="tok-string">'db.user.id'</span>, <span class="tok-string">'usr_alice'</span>)
+    <span class="tok-keyword">await</span> <span class="tok-keyword">new</span> <span class="tok-function">Promise</span>((resolve) =&gt; <span class="tok-function">setTimeout</span>(resolve, <span class="tok-number">50</span>))
+  })
+
+  <span class="tok-keyword">return</span> c.<span class="tok-function">json</span>({ message: <span class="tok-string">'Hello, world!'</span> })
+})</code></pre>
+
+<p>Now the trace shows the child span's contribution to the total duration:</p>
+
+<div class="trace-output">
+<span class="root">GET /hello</span>  <span class="duration">200  53ms</span>
+ └─ <span class="child">db.user.lookup</span>  <span class="duration">50ms</span>
+ └─ <span class="attr">user.id=usr_alice  customer.tier=enterprise</span>
+</div>
+
+<p>You can immediately see that 50ms of the 53ms total was the database lookup. If this request was slow, you know exactly where to look.</p>
+
+<p>A few rules about child spans:</p>
+
+<ul>
+  <li><strong>Use them for operations with meaningful duration.</strong> Don't wrap a 1ms function call in a span.</li>
+  <li><strong>Keep names low-cardinality.</strong> <code>db.user.lookup</code> is fine. <code>db.user.lookup.usr_alice</code> is not — variable data goes in attributes, never in span names.</li>
+  <li><strong>You don't need to wrap auto-instrumented operations.</strong> If you use <code>pg</code> or <code>fetch</code>, canon-signal already creates spans for them automatically. Wrapping them in <code>signal.span()</code> would produce duplicate spans.</li>
+</ul>
+
+<h3 id="errors">Step 6: Handle errors</h3>
+
+<p>What if something fails? Let's deliberately throw an error:</p>
+
+<pre><code>app.<span class="tok-function">get</span>(<span class="tok-string">'/maybe-fail'</span>, <span class="tok-keyword">async</span> (c) =&gt; {
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.user.id'</span>, <span class="tok-string">'usr_alice'</span>)
+
+  <span class="tok-keyword">try</span> {
+    <span class="tok-keyword">await</span> signal.<span class="tok-function">span</span>(<span class="tok-string">'risky.operation'</span>, <span class="tok-keyword">async</span> () =&gt; {
+      <span class="tok-keyword">throw new</span> <span class="tok-function">Error</span>(<span class="tok-string">'something went wrong'</span>)
+    })
+  } <span class="tok-keyword">catch</span> (err) {
+    signal.<span class="tok-function">error</span>(err)                                <span class="tok-comment">// records on the active span</span>
+    signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.error.code'</span>, <span class="tok-string">'OPERATION_FAILED'</span>) <span class="tok-comment">// always targets root</span>
+    <span class="tok-keyword">return</span> c.<span class="tok-function">json</span>({ error: <span class="tok-string">'failed'</span> }, <span class="tok-number">500</span>)
+  }
+
+  <span class="tok-keyword">return</span> c.<span class="tok-function">json</span>({ ok: <span class="tok-keyword">true</span> })
+})</code></pre>
+
+<p>Hit it and you'll see:</p>
+
+<div class="trace-output">
+<span class="root-error">GET /maybe-fail</span>  <span class="duration">500  2ms</span>
+ └─ <span class="child">risky.operation</span>  <span class="duration">1ms</span>
+ └─ <span class="attr">user.id=usr_alice  error.code=OPERATION_FAILED</span>
+</div>
+
+<p>Red because it failed, with the error code surfaced as a queryable attribute. The exception details (type, message, stack trace) are recorded on the child span as a span event.</p>
+
+<p>Note the deliberate split:</p>
+
+<ul>
+  <li><code>signal.error(err)</code> targets the <em>active</em> span — in this case, the child span where the failure happened</li>
+  <li><code>signal.attr('app.error.code', ...)</code> always targets the <em>root</em> span — the request-level outcome</li>
+</ul>
+
+<p>Both annotations are preserved. When you debug, you see the error code on the root span (helping you filter "show me all OPERATION_FAILED errors in the last hour") and the actual exception on the child span (showing you exactly where it broke).</p>
+
+<h3 id="testing">Step 7: Test the instrumentation</h3>
+
+<p>This is where canon-signal really pays off. Every signal instance has a built-in test harness with typed assertions.</p>
+
+<p>Create <code>src/server.test.ts</code>:</p>
+
+<pre><code><span class="tok-keyword">import</span> { describe, it, expect } <span class="tok-keyword">from</span> <span class="tok-string">'vitest'</span>
+<span class="tok-keyword">import</span> { Hono } <span class="tok-keyword">from</span> <span class="tok-string">'hono'</span>
+<span class="tok-keyword">import</span> { signal } <span class="tok-keyword">from</span> <span class="tok-string">'./signal'</span>
+
+<span class="tok-keyword">const</span> app = <span class="tok-keyword">new</span> <span class="tok-function">Hono</span>()
+app.<span class="tok-function">use</span>(<span class="tok-string">'*'</span>, signal.<span class="tok-function">middleware</span>())
+
+app.<span class="tok-function">get</span>(<span class="tok-string">'/hello'</span>, (c) =&gt; {
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.user.id'</span>, <span class="tok-string">'usr_alice'</span>)
+  signal.<span class="tok-function">attr</span>(<span class="tok-string">'app.customer.tier'</span>, <span class="tok-string">'enterprise'</span>)
+  <span class="tok-keyword">return</span> c.<span class="tok-function">json</span>({ message: <span class="tok-string">'Hello, world!'</span> })
+})
+
+<span class="tok-function">describe</span>(<span class="tok-string">'GET /hello'</span>, () =&gt; {
+  <span class="tok-keyword">const</span> harness = signal.test.<span class="tok-function">harness</span>()
+
+  <span class="tok-function">it</span>(<span class="tok-string">'emits a trace with the expected attributes'</span>, <span class="tok-keyword">async</span> () =&gt; {
+    <span class="tok-keyword">await</span> app.<span class="tok-function">request</span>(<span class="tok-string">'/hello'</span>)
+
+    <span class="tok-keyword">const</span> root = harness.<span class="tok-function">rootSpan</span>()
+    <span class="tok-function">expect</span>(root).<span class="tok-function">toBeDefined</span>()
+
+    <span class="tok-comment">// Typed assertions — the keys are constrained to your interface</span>
+    harness.<span class="tok-function">assertAttr</span>(root!, <span class="tok-string">'app.user.id'</span>, <span class="tok-string">'usr_alice'</span>)
+    harness.<span class="tok-function">assertAttr</span>(root!, <span class="tok-string">'app.customer.tier'</span>, <span class="tok-string">'enterprise'</span>)
+
+    <span class="tok-comment">// Structural assertion</span>
+    harness.<span class="tok-function">assertStatus</span>(root!, <span class="tok-string">'OK'</span>)
+
+    harness.<span class="tok-function">reset</span>()
+  })
+})</code></pre>
+
+<p>Run it:</p>
+
+<pre><code>npx vitest run</code></pre>
+
+<p>Your test passes. You've just verified that the handler produces the right trace. If a future refactor accidentally removes the <code>signal.attr('app.user.id', ...)</code> call, this test will fail before the regression ships.</p>
+
+<div class="callout callout-good">
+<span class="callout-title">This is the superpower</span>
+<p>Without the test harness, you'd only discover a missing attribute during a 3am incident — when an investigation comes up empty because the data isn't there. With it, you catch the bug at PR review time. Every handler with non-trivial instrumentation should have a test like this.</p>
+</div>
+
+<hr>
+
+<h2 id="constitution">The constitution in practice</h2>
+
+<p>canon-signal is built on a set of principles documented in <code>resources/CONSTITUTION.md</code> (the file inside the package). Here are the most important principles, each tied to the code patterns you just saw.</p>
+
+<h3 id="principles">Core principles</h3>
+
+<h4>1. Traces are the backbone, not logs.</h4>
+
+<p>The canonical record of any request is its <em>root span</em>, not a collection of log lines. Logs are a secondary signal for the rare cases where you need a separate, correlated record outside the trace structure (audit trails, compliance events, system lifecycle).</p>
+
+<p>In code: prefer <code>signal.attr()</code> over <code>signal.log()</code> for anything you'd want to query later. The default answer to "should I log this?" is "no, it should be an attribute."</p>
+
+<h4>2. The schema is the contract.</h4>
+
+<p>The TypeScript interface declares every attribute the service emits. The compiler enforces it. Drift is impossible — you can't accidentally misspell an attribute name or pass the wrong type, because the build will fail.</p>
+
+<p>In code: <code>interface AppAttributes extends SignalAttributes</code>. This is the entire schema. Adding a new attribute means editing this interface first.</p>
+
+<h4>3. Context is ambient.</h4>
+
+<p>Every <code>signal.attr()</code> call automatically lands on the right request, no matter how deep in the call stack you are. This is enabled by Node.js's <code>AsyncLocalStorage</code> — the request scope propagates through all async operations without you passing arguments.</p>
+
+<p>In code: notice that you never pass a "logger" or "request context" object to your service functions. They just call <code>signal.attr()</code> and it works.</p>
+
+<h4>4. Make the right thing easy, the wrong thing awkward.</h4>
+
+<p>canon-signal has two loggers: <code>signal.log</code> (which auto-attaches trace context) and <code>signal.systemLog</code> (which explicitly never attaches trace context). The split exists to force you to think about whether you're logging about a request or about the system. There's no single <code>signal.log()</code> that you can mindlessly call.</p>
+
+<p>In code: if you find yourself reaching for <code>signal.systemLog</code> inside a request handler, that's a smell. The question to ask is "is this about the request?" — if yes, use <code>signal.attr()</code> instead.</p>
+
+<h4>5. Span names must be low-cardinality.</h4>
+
+<p>Trace backends index span names. High-cardinality names (with embedded variable data) blow up the index and break the backend. Names like <code>payment.process</code> are fine; names like <code>payment.process.usr_${userId}</code> are forbidden. Variable data goes in attributes.</p>
+
+<p>In code: if your <code>signal.span(name, ...)</code> call has a template literal in the name, you're doing it wrong.</p>
+
+<h4>6. Sampling is outcome-aware.</h4>
+
+<p>canon-signal uses tail sampling: the decision to keep or drop a trace happens <em>after</em> the request finishes, when we know the outcome. Errors and slow requests are always kept; everything else is sampled at a configurable rate.</p>
+
+<p>In code: configure sampling once in <code>createSignal()</code>. You never make sampling decisions in handler code.</p>
+
+<h3 id="rules">Practical rules (the short version)</h3>
+
+<table>
+<thead>
+<tr><th>Do</th><th>Don't</th></tr>
+</thead>
+<tbody>
+<tr><td>Use <code>signal.attr()</code> for queryable data</td><td>Use <code>console.log</code> in request handlers</td></tr>
+<tr><td>Use <code>signal.span()</code> for sub-operations with meaningful duration</td><td>Wrap every function call in a span</td></tr>
+<tr><td>Keep span names low-cardinality (templates only)</td><td>Embed user IDs or query text in span names</td></tr>
+<tr><td>Use <code>signal.error(err)</code> in catch blocks</td><td>Catch errors silently</td></tr>
+<tr><td>Add new attributes to the interface first</td><td>Bypass the schema with <code>as any</code></td></tr>
+<tr><td>Test instrumentation with the harness</td><td>Skip tests for telemetry code</td></tr>
+<tr><td>One <code>createSignal()</code> per service</td><td>Multiple signal instances in one app</td></tr>
+<tr><td>Let auto-instrumentation handle DBs and HTTP</td><td>Manually wrap auto-instrumented operations</td></tr>
+</tbody>
+</table>
+
+<p>The full set of rules is in <code>resources/PLAYBOOK.md</code> in the canon-signal package. If you install canon-signal in your project, you can run <code>npx canon-signal install-docs</code> to copy the playbook (and the rest of the agent docs) into a <code>.canon-signal/</code> directory at your repo root, where AI agents working on your code can read it.</p>
+
+<hr>
+
+<h2 id="next">Where to go from here</h2>
+
+<p>You now have enough to use canon-signal productively. The full feature set has more depth — sampling rules, metrics, logger bridges, the inspect CLI, agent debugging tools — but everything builds on the concepts you just learned.</p>
+
+<h4>Next steps in increasing ambition:</h4>
+
+<ol>
+  <li><strong>Add a real database.</strong> Install <code>pg</code> or <code>better-sqlite3</code>. Make a query in a handler. Notice that auto-instrumentation creates a child span for your query automatically, with no code changes.</li>
+  <li><strong>Add sampling.</strong> Configure <code>sampling: { alwaysKeep: { errors: true }, defaultRate: 0.5 }</code> in your <code>createSignal()</code> call. Make 20 requests, fail one of them. Verify the failure is always kept and roughly half of the others are too.</li>
+  <li><strong>Run <code>npx canon-signal install-docs</code></strong> in your project. Read the resulting <code>.canon-signal/PLAYBOOK.md</code>. Have any AI agents you work with read it too.</li>
+  <li><strong>Export to a real backend.</strong> Sign up for Grafana Cloud's free tier. Configure an OTLP exporter pointing at it. Watch your traces flow into Tempo in real time.</li>
+  <li><strong>Write tests for every handler.</strong> Use the harness to assert the attributes each handler should set. Run them in CI. Now telemetry quality is enforced like any other test.</li>
+</ol>
+
+<h3 id="further">Further reading</h3>
+
+<p>If you want the deeper treatment of the philosophy:</p>
+
+<ul>
+  <li><a href="https://research.google/pubs/dapper-a-large-scale-distributed-systems-tracing-infrastructure/">Dapper, a Large-Scale Distributed Systems Tracing Infrastructure</a> — the original paper</li>
+  <li><a href="https://brandur.org/canonical-log-lines">Brandur Leach — Canonical Log Lines</a></li>
+  <li><a href="https://charity.wtf/2019/02/05/logs-vs-structured-events/">Charity Majors — Logs vs Structured Events</a></li>
+  <li><a href="https://jeremymorrell.dev/blog/a-practitioners-guide-to-wide-events/">Jeremy Morrell — A Practitioner's Guide to Wide Events</a></li>
+  <li><a href="https://isburmistrov.substack.com/p/all-you-need-is-wide-events-not-metrics">Ivan Burmistrov — All You Need Is Wide Events</a></li>
+  <li><a href="https://loggingsucks.com/">Boris Tane — Logging Sucks</a></li>
+  <li><a href="https://opentelemetry.io/docs/concepts/signals/traces/">OpenTelemetry Traces documentation</a></li>
+</ul>
+
+<p>And in the canon-signal package itself:</p>
+
+<ul>
+  <li><strong><code>resources/CONSTITUTION.md</code></strong> — The full philosophy. Read this to understand <em>why</em> every decision is the way it is.</li>
+  <li><strong><code>resources/PLAYBOOK.md</code></strong> — The complete set of rules.</li>
+  <li><strong><code>resources/PATTERNS.md</code></strong> — Working code examples for common scenarios.</li>
+  <li><strong><code>resources/ANTI_PATTERNS.md</code></strong> — Things that look right but violate the principles.</li>
+  <li><strong><code>README.md</code></strong> — The full API reference.</li>
+</ul>
+
+<hr>
+
+<h2>The mental shift, restated</h2>
+
+<p>The whole point of canon-signal is to flip the question you ask when something goes wrong.</p>
+
+<p><strong>Old question</strong>: "What logs should I grep to figure out what happened?"</p>
+
+<p><strong>New question</strong>: "Let me open the trace and see exactly what happened."</p>
+
+<p>If you take one thing away from this tutorial, take that. The traces are the source of truth. The schema is the contract. The tests verify the instrumentation. Everything else is implementation detail.</p>
+
+<p>Welcome to trace-first observability.</p>
+
+<div class="footer">
+  <p>This tutorial is part of the canon-signal package. For the latest version, see the <code>resources/tutorial/</code> directory in your installed canon-signal package.</p>
+  <p>canon-signal is open source and built on OpenTelemetry. The philosophical foundation is documented in <code>resources/CONSTITUTION.md</code>.</p>
+</div>
+
+</main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+coverage/
+*.tsbuildinfo
+
+# Authoring artifacts — historical design documents from package construction.
+# These are preserved locally for reference but not committed to git or
+# shipped with the package. The canonical reference for users is resources/.
+.design/
