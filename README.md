@@ -964,12 +964,12 @@ npx canon-signal report-issue "Brief description"
 
 This opens a pre-filled GitHub issue with diagnostic information already attached. See the [`report-issue` CLI section](#npx-canon-signal-report-issue) above for full options.
 
-You can also file issues manually at the [GitHub issue tracker](https://github.com/derekurban2001/canon-signal/issues). Issue templates are provided for bugs, features, and questions.
+You can also file issues manually at the [GitHub issue tracker](https://github.com/derekurban/canon-signal/issues). Issue templates are provided for bugs, features, and questions.
 
 ### Local development
 
 ```bash
-git clone https://github.com/derekurban2001/canon-signal.git
+git clone https://github.com/derekurban/canon-signal.git
 cd canon-signal
 npm install
 

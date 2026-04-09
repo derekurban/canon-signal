@@ -86,14 +86,14 @@
     "otel"
   ],
   "license": "MIT",
-  "author": "derekurban2001",
-  "homepage": "https://github.com/derekurban2001/canon-signal#readme",
+  "author": "derekurban",
+  "homepage": "https://github.com/derekurban/canon-signal#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/derekurban2001/canon-signal.git"
+    "url": "git+https://github.com/derekurban/canon-signal.git"
   },
   "bugs": {
-    "url": "https://github.com/derekurban2001/canon-signal/issues"
+    "url": "https://github.com/derekurban/canon-signal/issues"
   },
   "publishConfig": {
     "access": "public",

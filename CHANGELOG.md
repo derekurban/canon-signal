@@ -28,4 +28,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discriminated union for `ExporterConfig` so the type system enforces required fields per exporter kind
 - 64 unit tests covering the full public API
 
-[Unreleased]: https://github.com/derekurban2001/canon-signal/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.1.0...HEAD
