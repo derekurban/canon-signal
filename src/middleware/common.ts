@@ -34,6 +34,7 @@
 
 import { SpanStatusCode, trace, type Span } from '@opentelemetry/api'
 import type { Tracer } from '@opentelemetry/api'
+import { randomUUID } from 'node:crypto'
 import type { SignalStore, SignalContext } from '../context/store.js'
 import type { SignalAttributes } from '../types/attributes.js'
 import type { MiddlewareOptions } from '../types/config.js'
@@ -106,7 +107,11 @@ export function createRequestHandler<T extends SignalAttributes>(
   config: MiddlewareConfig<T>,
 ) {
   const requestIdHeader = config.options.requestIdHeader ?? 'x-request-id'
-  const generateRequestId = config.options.generateRequestId ?? (() => crypto.randomUUID())
+  // Use the explicit `node:crypto` import rather than the global `crypto`
+  // because the Web Crypto API on `globalThis.crypto` was only unflagged
+  // in Node 19+. We claim Node 18 support in package.json `engines`, so
+  // we must not depend on the global.
+  const generateRequestId = config.options.generateRequestId ?? (() => randomUUID())
 
   return async function handleRequest(
     request: RequestInfo,
