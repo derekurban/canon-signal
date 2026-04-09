@@ -1,6 +1,6 @@
 {
   "name": "canon-signal",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Opinionated OpenTelemetry toolkit for Node.js/TypeScript — trace-first observability with typed canonical span schemas",
   "type": "module",
   "exports": {
@@ -133,11 +133,23 @@
     "winston": ">=3.0.0"
   },
   "peerDependenciesMeta": {
-    "hono": { "optional": true },
-    "express": { "optional": true },
-    "fastify": { "optional": true },
-    "next": { "optional": true },
-    "pino": { "optional": true },
-    "winston": { "optional": true }
+    "hono": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "next": {
+      "optional": true
+    },
+    "pino": {
+      "optional": true
+    },
+    "winston": {
+      "optional": true
+    }
   }
 }

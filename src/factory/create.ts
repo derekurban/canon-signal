@@ -124,8 +124,13 @@ export function createSignal<T extends SignalAttributes>(
   // Resolve the configured exporters into concrete instances. Always
   // includes in-memory exporters at the front so the test harness has
   // something to read from.
-  const { spanExporters, logExporters, inMemorySpanExporter, inMemoryLogExporter } =
-    resolveExporters(effectiveOptions.export)
+  const {
+    spanExporters,
+    logExporters,
+    metricReaders,
+    inMemorySpanExporter,
+    inMemoryLogExporter,
+  } = resolveExporters(effectiveOptions.export)
 
   // ─── Tracer provider setup ───────────────────────────────────────
 
@@ -181,7 +186,10 @@ export function createSignal<T extends SignalAttributes>(
 
   // ─── Meter provider setup ────────────────────────────────────────
 
-  const meterProvider = new MeterProvider({ resource })
+  // Metrics are wired through readers, not span/log-style exporters.
+  // Passing readers into the provider constructor is what makes
+  // `export.metrics` and `export.all` take effect.
+  const meterProvider = new MeterProvider({ resource, readers: metricReaders })
   // Register globally so auto-instrumentation metrics flow through
   // the same provider as signal.meter() instruments.
   metrics.setGlobalMeterProvider(meterProvider)

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-09
+
+### Added
+
+- Shared `export.all` configuration that applies a baseline destination list across traces, logs, and metrics before any signal-specific exporters are appended.
+- Full destination-family parity across traces, logs, and metrics: `otlp`, `console`, `pretty-console`, and `file`.
+- Pretty console output for logs and metrics, complementing the existing trace waterfall renderer.
+- File exporters for logs and metrics, with a top-level `signal` discriminator on every JSONL line so mixed `export.all` outputs stay parseable.
+- Black-box exporter tests covering `export.all`, log destination support, and end-to-end metric OTLP export on shutdown.
+
+### Fixed
+
+- **Issue #1**: log export no longer rejects `console`, `pretty-console`, or `file` destinations at startup.
+- **Issue #2**: `export.metrics` is now wired into `MeterProvider` via metric readers, so configured metric exporters actually flush data instead of dropping it silently.
+
+### Changed
+
+- Export resolution is now signal-specific internally: traces and logs resolve to exporters, while metrics resolve to `MetricReader`s.
+- Documentation now reflects the shared destination model, the signal-specific implementation strategy, and the trace-only scope of `canon-signal inspect`.
+
 ## [0.1.1] - 2026-04-09
 
 ### Fixed
@@ -42,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discriminated union for `ExporterConfig` so the type system enforces required fields per exporter kind
 - 68 unit tests covering the full public API
 
-[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/derekurban/canon-signal/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/derekurban/canon-signal/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/derekurban/canon-signal/releases/tag/v0.1.0

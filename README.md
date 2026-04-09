@@ -469,30 +469,40 @@ The processor accumulates per-trace stats as DB child spans complete, then write
 
 ## Export configuration
 
-Each signal type accepts an array of exporters. Multiple exporters run in parallel.
+Each signal type accepts an array of export destinations. Multiple destinations run in parallel.
+
+`export.all` is a shared baseline applied to traces, logs, and metrics. Signal-specific lists are appended after it with order preserved and no deduplication.
 
 ```typescript
 export: {
+  all: [
+    { type: 'otlp', endpoint: 'https://otlp-gateway.example.com' },
+  ],
   traces: [
-    { type: 'otlp', endpoint: 'https://tempo.grafana.net/otlp' },
-    { type: 'pretty-console' },                         // dev waterfall to stdout
-    { type: 'file', path: './traces.jsonl' },           // JSONL output
+    { type: 'pretty-console' },                         // rich dev waterfall
+    { type: 'file', path: './telemetry.jsonl' },        // JSONL output (signal-tagged)
   ],
   logs: [
-    { type: 'otlp', endpoint: 'https://loki.grafana.net/otlp' },
+    { type: 'pretty-console' },                         // colored log lines
   ],
   metrics: [
-    { type: 'otlp', endpoint: 'https://mimir.grafana.net/otlp' },
+    { type: 'console' },                                // raw metric batch dump
   ],
 }
 ```
 
-| Exporter type | Use case |
-|---|---|
-| `'otlp'` | Production export to any OTLP-compatible backend (Grafana, Honeycomb, Datadog, etc.) |
-| `'pretty-console'` | Dev waterfall — collects spans by trace ID, renders a colored tree on root span end |
-| `'console'` | Structured JSON to stdout (12-factor / container-friendly) |
-| `'file'` | JSONL file output — readable by `npx canon-signal inspect` |
+| Destination type | Traces | Logs | Metrics | Use case |
+|---|---|---|---|---|
+| `'otlp'` | yes | yes | yes | Production export to any OTLP-compatible backend |
+| `'pretty-console'` | yes | yes | yes | Human-friendly local stdout; traces get the richest formatting |
+| `'console'` | yes | yes | yes | Raw SDK-style console output for diagnostics |
+| `'file'` | yes | yes | yes | JSONL output to disk; trace files remain readable by `npx canon-signal inspect` |
+
+Notes:
+
+- `pretty-console` is signal-specific under the hood: traces render as a waterfall, logs as colored lines, and metrics as compact per-batch summaries.
+- `file` output includes a `signal` field on every JSONL line (`'trace'`, `'log'`, `'metric'`) so a shared `export.all` file path remains intelligible.
+- Metrics are wired through `MetricReader`s internally, but they intentionally share the same destination names as traces/logs in the public config.
 
 An in-memory exporter is **always** present so the test harness has something to read from.
 
@@ -656,7 +666,7 @@ The tutorial is a self-contained HTML file (no build, no dependencies) covering 
 
 ### `npx canon-signal inspect --file traces.jsonl`
 
-Reads spans from a JSONL file (produced by the `file` exporter) and renders them as a tree with attributes.
+Reads spans from a JSONL trace file (produced by the trace `file` exporter) and renders them as a tree with attributes.
 
 ```bash
 # Last 5 traces
@@ -740,8 +750,6 @@ Canon Signal-specific:
 |---|---|
 | `CANON_SIGNAL_SAMPLE_RATE` | Override `sampling.defaultRate` (0.0–1.0) |
 | `CANON_SIGNAL_DEBUG` | Force-keep all traces, verbose console output |
-| `CANON_SIGNAL_LOG_EXPORT` | Override log export target (`otlp` or `console`) |
-
 ---
 
 ## Architecture
@@ -794,11 +802,11 @@ src/
 │   └── meter.ts                      # signal.meter — counter/gauge/histogram with typed instruments
 │
 ├── export/
-│   ├── resolve.ts                    # ExporterConfig → SpanExporter / LogRecordExporter resolver
+│   ├── resolve.ts                    # export config → trace/log exporters + metric readers
 │   ├── otlp.ts                       # OTLP exporters (traces, logs, metrics)
 │   ├── console.ts                    # OTel ConsoleSpanExporter wrapper
-│   ├── pretty-console.ts             # Dev waterfall renderer (collects by trace, prints tree)
-│   ├── file.ts                       # JSONL file exporter
+│   ├── pretty-console.ts             # Human-friendly console exporters for traces/logs/metrics
+│   ├── file.ts                       # JSONL file exporters for traces/logs/metrics
 │   └── ring-buffer.ts                # In-memory ring buffer for inspect CLI
 │
 ├── middleware/
@@ -819,7 +827,7 @@ src/
 │   └── harness.ts                    # createTestHarness — typed assertions, in-memory readers
 │
 ├── inspect/
-│   ├── cli.ts                        # canon-signal inspect — JSONL file → tree renderer
+│   ├── cli.ts                        # canon-signal inspect — trace JSONL file → tree renderer
 │   ├── query.ts                      # Trace filtering helpers (errors, route, attribute)
 │   └── narrate.ts                    # narrateTrace — structured summary for agents
 │
@@ -852,7 +860,7 @@ src/
 
 **`src/sampling/db-summary.ts`** — `DbSummaryProcessor` accumulates `db.system`-tagged child span durations per trace ID. When a root span ends (`parentSpanId === undefined`), it writes `app.db.total_duration_ms` and `app.db.query_count` onto the root span before the next processor in the chain sees it.
 
-**`src/export/`** — Each file is a self-contained exporter. `resolve.ts` is the dispatcher that takes user `ExporterConfig` objects and returns concrete `SpanExporter` / `LogRecordExporter` instances. It always prepends an `InMemorySpanExporter` and `InMemoryLogRecordExporter` so the test harness has something to read from regardless of user config. `pretty-console.ts` is the most complex: it buffers spans by trace ID and only renders the colored tree when a root span arrives, so the output is grouped per request.
+**`src/export/`** — Each file is a self-contained exporter family. `resolve.ts` expands `export.all`, then resolves traces and logs into exporters and metrics into `MetricReader`s. It always prepends an `InMemorySpanExporter` and `InMemoryLogRecordExporter` so the test harness has something to read from regardless of user config. `pretty-console.ts` is still richest on the trace side — it buffers spans by trace ID and renders a waterfall when the root span arrives — but the module also carries the lighter pretty renderers for logs and metrics.
 
 **`src/logging/log.ts`** — `signal.log.*()` methods. Each method checks `store.getStore()` (soft check, no throw), and if a context exists, attaches `trace_id` and `span_id` to the log attributes before calling `otelLogger.emit()`.
 

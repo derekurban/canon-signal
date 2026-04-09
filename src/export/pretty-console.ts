@@ -1,25 +1,20 @@
 /**
  * @module canon-signal/export/pretty-console
  *
- * The "dev waterfall" exporter — collects spans by trace ID and renders
- * each completed trace as a colored tree to stdout when its root span
- * arrives.
+ * Human-friendly console exporters for local development.
  *
- * **Why this exists**: in development, raw JSON span output is hard to
- * read at a glance. The pretty-console exporter groups spans by trace,
- * shows the request method/route as a header, lists child spans with
- * indentation and durations, and surfaces key `app.*` attributes at the
- * bottom — making each request feel like a single readable unit.
+ * The trace exporter is the richest of the three because traces have
+ * natural parent/child structure. Logs and metrics intentionally use a
+ * lighter presentation: one readable line per log record or metric item.
  *
- * **How it works**:
- * - On every `export()` call, spans are buffered in a per-trace map
- * - When a root span arrives (no parent), the entire trace is rendered
- *   and removed from the buffer
- * - Children are sorted by start time so the waterfall reads top-to-bottom
- * - Errors are highlighted in red, success in green
+ * This keeps `pretty-console` consistent across all three signals while
+ * still respecting the fact that traces, logs, and metrics are emitted
+ * through different OTel SDK abstractions.
  */
 
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base'
+import type { LogRecordExporter, ReadableLogRecord } from '@opentelemetry/sdk-logs'
+import type { PushMetricExporter, ResourceMetrics, MetricData } from '@opentelemetry/sdk-metrics'
 import { ExportResultCode, type ExportResult } from '@opentelemetry/core'
 import { SpanStatusCode } from '@opentelemetry/api'
 import { isRootSpan, formatSpanDuration, compareByStartTime } from '../util/span.js'
@@ -28,8 +23,10 @@ import { isRootSpan, formatSpanDuration, compareByStartTime } from '../util/span
 const RESET = '\x1b[0m'
 const DIM = '\x1b[2m'
 const RED = '\x1b[31m'
+const YELLOW = '\x1b[33m'
 const GREEN = '\x1b[32m'
 const CYAN = '\x1b[36m'
+const MAGENTA = '\x1b[35m'
 const BOLD = '\x1b[1m'
 
 /** Canon-signal-internal attributes that shouldn't appear in the attribute footer. */
@@ -138,4 +135,144 @@ export class PrettyConsoleExporter implements SpanExporter {
 /** Factory function for the pretty console exporter. */
 export function createPrettyConsoleExporter() {
   return new PrettyConsoleExporter()
+}
+
+/**
+ * Pretty log exporter. Produces one concise colored line per record with
+ * enough context to read a stream directly in the terminal.
+ */
+export class PrettyConsoleLogExporter implements LogRecordExporter {
+  export(logs: ReadableLogRecord[], resultCallback: (result: ExportResult) => void): void {
+    for (const logRecord of logs) {
+      const severity = logRecord.severityText ?? 'INFO'
+      const color = severityColor(severity)
+      const timestamp = formatLogTime(logRecord.hrTime)
+      const message = formatValue(logRecord.body)
+      const traceInfo = logRecord.spanContext
+        ? `${DIM}trace=${logRecord.spanContext.traceId}${RESET} ${DIM}span=${logRecord.spanContext.spanId}${RESET}`
+        : ''
+      const attrs = formatAttrMap(logRecord.attributes)
+      const suffix = [traceInfo, attrs].filter(Boolean).join('  ')
+      console.log(
+        `${DIM}${timestamp}${RESET} ${BOLD}${color}${severity}${RESET} ${message}${suffix ? `  ${suffix}` : ''}`,
+      )
+    }
+    resultCallback({ code: ExportResultCode.SUCCESS })
+  }
+
+  async shutdown(): Promise<void> {}
+}
+
+/**
+ * Pretty metric exporter. Each export cycle is rendered as a compact
+ * batch with one line per metric so developers can inspect values
+ * without wading through raw SDK object dumps.
+ */
+export class PrettyConsoleMetricExporter implements PushMetricExporter {
+  export(metrics: ResourceMetrics, resultCallback: (result: ExportResult) => void): void {
+    if (metrics.scopeMetrics.length === 0) {
+      resultCallback({ code: ExportResultCode.SUCCESS })
+      return
+    }
+
+    console.log(`${BOLD}${MAGENTA}Metrics${RESET}`)
+    for (const scopeMetrics of metrics.scopeMetrics) {
+      for (const metric of scopeMetrics.metrics) {
+        const type = dataPointTypeLabel(metric.dataPointType)
+        const values = metric.dataPoints
+          .map((point) => {
+            const attrs = formatAttrMap(point.attributes)
+            const rendered = formatMetricValue(metric, point.value)
+            return attrs ? `${rendered} ${DIM}${attrs}${RESET}` : rendered
+          })
+          .join(`${DIM} | ${RESET}`)
+
+        console.log(
+          ` ${DIM}└─${RESET} ${CYAN}${metric.descriptor.name}${RESET} ${DIM}[${type}${metric.descriptor.unit ? ` ${metric.descriptor.unit}` : ''}]${RESET} ${values}`,
+        )
+      }
+    }
+    console.log()
+
+    resultCallback({ code: ExportResultCode.SUCCESS })
+  }
+
+  async forceFlush(): Promise<void> {}
+  async shutdown(): Promise<void> {}
+}
+
+/** Factory function for the pretty log exporter. */
+export function createPrettyConsoleLogExporter() {
+  return new PrettyConsoleLogExporter()
+}
+
+/** Factory function for the pretty metric exporter. */
+export function createPrettyConsoleMetricExporter() {
+  return new PrettyConsoleMetricExporter()
+}
+
+function severityColor(severity: string): string {
+  switch (severity.toUpperCase()) {
+    case 'ERROR':
+    case 'FATAL':
+      return RED
+    case 'WARN':
+      return YELLOW
+    case 'DEBUG':
+    case 'TRACE':
+      return CYAN
+    default:
+      return GREEN
+  }
+}
+
+function formatLogTime(hrTime: [number, number]): string {
+  const millis = hrTime[0] * 1000 + Math.floor(hrTime[1] / 1_000_000)
+  return new Date(millis).toISOString()
+}
+
+function formatAttrMap(attributes: Record<string, unknown>): string {
+  const entries = Object.entries(attributes)
+  if (entries.length === 0) return ''
+  return entries.map(([key, value]) => `${key}=${formatValue(value)}`).join(' ')
+}
+
+function formatValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null ||
+    value === undefined
+  ) {
+    return String(value)
+  }
+  return JSON.stringify(value)
+}
+
+function dataPointTypeLabel(dataPointType: MetricData['dataPointType']): string {
+  switch (dataPointType) {
+    case 0:
+      return 'histogram'
+    case 1:
+      return 'exp-histogram'
+    case 2:
+      return 'gauge'
+    case 3:
+      return 'sum'
+    default:
+      return 'metric'
+  }
+}
+
+function formatMetricValue(metric: MetricData, value: MetricData['dataPoints'][number]['value']): string {
+  switch (metric.dataPointType) {
+    case 0:
+    case 1:
+      return `count=${(value as { count?: number }).count ?? 0} sum=${(value as { sum?: number }).sum ?? 0}`
+    case 2:
+    case 3:
+    default:
+      return String(value)
+  }
 }

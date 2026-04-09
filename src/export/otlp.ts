@@ -35,9 +35,9 @@ export function createOtlpLogExporter(config: OtlpExporterConfig) {
 }
 
 /**
- * Creates an OTLP metric exporter from user config. Currently unused
- * by `resolveExporters` (metric export is wired separately when needed),
- * but kept here for symmetry and future use.
+ * Creates an OTLP metric exporter from user config. Metrics are wired
+ * through `PeriodicExportingMetricReader`, so this factory returns the
+ * push exporter that the reader wraps.
  */
 export function createOtlpMetricExporter(config: OtlpExporterConfig) {
   return new OTLPMetricExporter({

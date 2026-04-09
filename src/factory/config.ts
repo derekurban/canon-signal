@@ -21,6 +21,7 @@
 
 import type { SignalAttributes } from '../types/attributes.js'
 import type {
+  AllExporterConfig,
   CreateSignalOptions,
   ExporterConfig,
   ExportConfig,
@@ -70,7 +71,10 @@ function isEnvTruthy(value: string | undefined): boolean {
  * `OTEL_EXPORTER_OTLP_ENDPOINT` if not set, and env-supplied headers
  * are merged with any existing headers.
  */
-function applyOtlpEnvOverrides(config: ExporterConfig, envHeaders: Record<string, string>): ExporterConfig {
+function applyOtlpEnvOverrides(
+  config: ExporterConfig,
+  envHeaders: Record<string, string>,
+): ExporterConfig {
   if (config.type !== 'otlp') return config
 
   const endpoint = config.endpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || ''
@@ -90,11 +94,15 @@ function applyOtlpEnvOverrides(config: ExporterConfig, envHeaders: Record<string
 function applyExportEnvOverrides(exportConfig: ExportConfig | undefined): ExportConfig | undefined {
   if (!exportConfig) return undefined
   const envHeaders = parseKeyValueList(process.env.OTEL_EXPORTER_OTLP_HEADERS)
+  const applyToList = <T extends AllExporterConfig>(configs: T[] | undefined): T[] | undefined => {
+    return configs?.map((c) => applyOtlpEnvOverrides(c, envHeaders) as T)
+  }
 
   return {
-    traces: exportConfig.traces?.map((c) => applyOtlpEnvOverrides(c, envHeaders)),
-    logs: exportConfig.logs?.map((c) => applyOtlpEnvOverrides(c, envHeaders)),
-    metrics: exportConfig.metrics?.map((c) => applyOtlpEnvOverrides(c, envHeaders)),
+    all: applyToList(exportConfig.all),
+    traces: applyToList(exportConfig.traces),
+    logs: applyToList(exportConfig.logs),
+    metrics: applyToList(exportConfig.metrics),
   }
 }
 

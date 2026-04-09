@@ -41,9 +41,10 @@ function createSignal<T extends SignalAttributes>(
 | `sampling.alwaysKeep.routes` | `string[]` | — | Keep spans matching these `http.route` values. |
 | `sampling.alwaysKeep.attributes` | `Partial<Record<keyof T, unknown[]>>` | — | Keep spans where the named attribute matches any value in the array. |
 | `sampling.defaultRate` | `number` | `1.0` | Probability (0.0–1.0) for spans not matching always-keep rules. |
-| `export.traces` | `ExporterConfig[]` | `[]` | Trace exporters. |
-| `export.logs` | `ExporterConfig[]` | `[]` | Log exporters. |
-| `export.metrics` | `ExporterConfig[]` | `[]` | Metric exporters. |
+| `export.all` | `AllExporterConfig[]` | `[]` | Shared baseline destinations applied to traces, logs, and metrics. |
+| `export.traces` | `TraceExporterConfig[]` | `[]` | Trace destinations appended after `export.all`. |
+| `export.logs` | `LogExporterConfig[]` | `[]` | Log destinations appended after `export.all`. |
+| `export.metrics` | `MetricExporterConfig[]` | `[]` | Metric destinations appended after `export.all`. |
 | `instrumentation.http` | `boolean` | `true` | Enable HTTP auto-instrumentation. |
 | `instrumentation.database` | `boolean` | `true` | Enable database auto-instrumentation. |
 | `instrumentation.redis` | `boolean` | `true` | Enable Redis auto-instrumentation. |
@@ -55,6 +56,15 @@ function createSignal<T extends SignalAttributes>(
 **Throws**: If any attribute in `schema.meta` has `sensitivity: 'prohibited'`.
 
 **Returns**: A `Signal<T>` instance.
+
+**Supported destination types** for `export.all` and each per-signal list:
+
+- `'otlp'`
+- `'console'`
+- `'pretty-console'`
+- `'file'`
+
+These names are intentionally shared across all three signals even though canon-signal resolves them through signal-specific implementations internally. Metrics, for example, are wired through `MetricReader`s rather than span/log exporters.
 
 **Environment variable overrides applied at construction time**:
 
@@ -96,7 +106,9 @@ export const signal = createSignal<AppAttributes>({
     defaultRate: 0.1,
   },
   export: {
+    all: [{ type: 'otlp', endpoint: 'https://otlp-gateway.example.com' }],
     traces: [{ type: 'pretty-console' }],
+    logs: [{ type: 'pretty-console' }],
   },
 })
 ```
@@ -710,4 +722,4 @@ Copies the agent documentation suite into `.canon-signal/` at the root of your r
 
 ### `npx canon-signal inspect --file traces.jsonl`
 
-Reads a JSONL spans file (produced by the file exporter) and renders trace waterfalls. Supports `--last N`, `--errors`, `--trace <id>`, `--format json`.
+Reads a JSONL trace file (produced by the trace `file` exporter) and renders trace waterfalls. Supports `--last N`, `--errors`, `--trace <id>`, `--format json`.

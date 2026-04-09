@@ -128,20 +128,46 @@ export interface FileExporterConfig {
  * you compile-time guarantees (e.g. `{ type: 'file' }` without a `path`
  * is a compile error).
  */
-export type ExporterConfig =
+export type AllExporterConfig =
   | OtlpExporterConfig
   | PrettyConsoleExporterConfig
   | ConsoleExporterConfig
   | FileExporterConfig
 
 /**
+ * Trace exporter configuration. Kept as its own alias even though the
+ * currently supported destination types match `AllExporterConfig`.
+ *
+ * This avoids coupling every signal to one generic exporter union —
+ * traces, logs, and metrics can diverge safely in a future release
+ * without breaking the public shape of `ExportConfig`.
+ */
+export type TraceExporterConfig = AllExporterConfig
+
+/** Log exporter configuration. See `TraceExporterConfig` note above. */
+export type LogExporterConfig = AllExporterConfig
+
+/** Metric exporter configuration. See `TraceExporterConfig` note above. */
+export type MetricExporterConfig = AllExporterConfig
+
+/**
+ * Legacy generic exporter alias. Prefer the signal-specific aliases
+ * above when typing trace/log/metric resolver code.
+ */
+export type ExporterConfig = AllExporterConfig
+
+/**
  * Per-signal export configuration. Each signal type accepts an array
- * of exporters that all run in parallel.
+ * of destinations that all run in parallel.
+ *
+ * `all` is a shared baseline list applied to traces, logs, and metrics.
+ * Signal-specific lists are appended after `all` with no deduplication.
  */
 export interface ExportConfig {
-  traces?: ExporterConfig[]
-  logs?: ExporterConfig[]
-  metrics?: ExporterConfig[]
+  all?: AllExporterConfig[]
+  traces?: TraceExporterConfig[]
+  logs?: LogExporterConfig[]
+  metrics?: MetricExporterConfig[]
 }
 
 /**
