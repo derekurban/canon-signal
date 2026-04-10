@@ -503,6 +503,23 @@ Notes:
 - `pretty-console` is signal-specific under the hood: traces render as a waterfall, logs as colored lines, and metrics as compact per-batch summaries.
 - `file` output includes a `signal` field on every JSONL line (`'trace'`, `'log'`, `'metric'`) so a shared `export.all` file path remains intelligible.
 - Metrics are wired through `MetricReader`s internally, but they intentionally share the same destination names as traces/logs in the public config.
+- OTLP `endpoint` is treated as a base collector URL by default. canon-signal appends `/v1/traces`, `/v1/logs`, or `/v1/metrics` automatically so one OTLP config can be shared across all signals.
+- If you need an exact custom OTLP request URL for a proxy or nonstandard collector route, set `appendSignalPath: false`.
+
+```typescript
+export: {
+  all: [
+    { type: 'otlp', endpoint: 'https://otlp-gateway.example.com/otlp' },
+  ],
+  traces: [
+    {
+      type: 'otlp',
+      endpoint: 'https://proxy.example.com/custom-trace-intake',
+      appendSignalPath: false,
+    },
+  ],
+}
+```
 
 An in-memory exporter is **always** present so the test harness has something to read from.
 
@@ -738,7 +755,7 @@ Standard OTel variables (canon-signal honors these):
 
 | Variable | Description |
 |---|---|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP endpoint URL |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Base OTLP collector endpoint URL; canon-signal appends the signal path by default |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` or `grpc` |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Comma-separated key=value pairs |
 | `OTEL_SERVICE_NAME` | Overrides `service.name` |

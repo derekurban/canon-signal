@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-10
+
+### Fixed
+
+- **Issue #3**: OTLP exporters now treat `endpoint` as a base collector URL and append the correct signal path automatically (`/v1/traces`, `/v1/logs`, `/v1/metrics`) instead of posting every signal to the raw endpoint.
+
+### Added
+
+- OTLP exporters now accept `appendSignalPath: false` as an escape hatch for nonstandard proxy or collector routes that need an exact request URL.
+
 ## [0.2.0] - 2026-04-09
 
 ### Added
@@ -62,7 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discriminated union for `ExporterConfig` so the type system enforces required fields per exporter kind
 - 68 unit tests covering the full public API
 
-[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/derekurban/canon-signal/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/derekurban/canon-signal/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/derekurban/canon-signal/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/derekurban/canon-signal/releases/tag/v0.1.0

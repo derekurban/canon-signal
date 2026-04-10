@@ -13,7 +13,7 @@
  *
  * - `OTEL_SERVICE_NAME` → `service.name`
  * - `OTEL_RESOURCE_ATTRIBUTES` → parsed and merged into resource attributes
- * - `OTEL_EXPORTER_OTLP_ENDPOINT` → default `endpoint` for OTLP exporters that didn't specify one
+ * - `OTEL_EXPORTER_OTLP_ENDPOINT` → default OTLP base `endpoint` for exporters that didn't specify one
  * - `OTEL_EXPORTER_OTLP_HEADERS` → parsed `key=value,key2=value2` merged into OTLP exporter headers
  * - `CANON_SIGNAL_SAMPLE_RATE` → overrides `sampling.defaultRate` (parsed as float)
  * - `CANON_SIGNAL_DEBUG` → when truthy, forces `defaultRate` to 1.0 and keeps every trace
@@ -69,7 +69,8 @@ function isEnvTruthy(value: string | undefined): boolean {
  * Applies env var overrides to a single exporter config. Only OTLP
  * exporters are affected — the endpoint falls back to
  * `OTEL_EXPORTER_OTLP_ENDPOINT` if not set, and env-supplied headers
- * are merged with any existing headers.
+ * are merged with any existing headers. The signal-specific OTLP path
+ * is appended later when the exporter instance is created.
  */
 function applyOtlpEnvOverrides(
   config: ExporterConfig,

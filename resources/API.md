@@ -66,13 +66,15 @@ function createSignal<T extends SignalAttributes>(
 
 These names are intentionally shared across all three signals even though canon-signal resolves them through signal-specific implementations internally. Metrics, for example, are wired through `MetricReader`s rather than span/log exporters.
 
+For OTLP destinations, `endpoint` is treated as a base collector URL by default and canon-signal appends `/v1/traces`, `/v1/logs`, or `/v1/metrics` automatically. Set `appendSignalPath: false` when you need to use the configured endpoint exactly as provided.
+
 **Environment variable overrides applied at construction time**:
 
 | Variable | Effect |
 |---|---|
 | `OTEL_SERVICE_NAME` | Overrides `service.name` |
 | `OTEL_RESOURCE_ATTRIBUTES` | Parsed as `key=value,key2=value2` and merged into resource attributes |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Default `endpoint` for OTLP exporters that didn't specify one |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Default base `endpoint` for OTLP exporters that didn't specify one |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Parsed and merged into OTLP exporter headers |
 | `CANON_SIGNAL_SAMPLE_RATE` | Overrides `sampling.defaultRate` (parsed as float) |
 | `CANON_SIGNAL_DEBUG` | Forces `defaultRate` to `1.0` (keep everything). Truthy values: `1`, `true`, `yes`. |

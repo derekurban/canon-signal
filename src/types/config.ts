@@ -85,8 +85,23 @@ export interface SamplingConfig<T extends SignalAttributes> {
  */
 export interface OtlpExporterConfig {
   type: 'otlp'
-  /** OTLP endpoint URL. Required. */
+  /**
+   * Base OTLP collector endpoint URL. canon-signal appends the
+   * signal-specific path (`/v1/traces`, `/v1/logs`, `/v1/metrics`) by
+   * default so one collector URL can be shared across all signals.
+   *
+   * If you already have a signal-specific or proxy-specific full URL,
+   * set `appendSignalPath: false` to use this value as-is.
+   */
   endpoint: string
+  /**
+   * Whether canon-signal should append the default signal path when
+   * constructing the final OTLP request URL. Defaults to `true`.
+   *
+   * Set to `false` for unusual collectors or proxies that expect an
+   * exact custom URL rather than the standard `/v1/<signal>` routes.
+   */
+  appendSignalPath?: boolean
   /** OTLP wire format. Defaults to `'http/protobuf'`. */
   protocol?: 'http/protobuf' | 'grpc'
   /** Additional headers (e.g. `Authorization`) for OTLP requests. */

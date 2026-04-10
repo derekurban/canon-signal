@@ -75,7 +75,7 @@ describe('exporters', () => {
     }
 
     const signal = createBaseSignal({
-      metrics: [{ type: 'otlp', endpoint: `http://127.0.0.1:${address.port}/v1/metrics` }],
+      metrics: [{ type: 'otlp', endpoint: `http://127.0.0.1:${address.port}` }],
     })
 
     const meters = signal.meter({
@@ -95,6 +95,104 @@ describe('exporters', () => {
 
     expect(requests.length).toBeGreaterThan(0)
     expect(requests[0].url).toBe('/v1/metrics')
+    expect(requests[0].bytes).toBeGreaterThan(0)
+  })
+
+  it('appends signal-specific OTLP paths for traces, logs, and metrics by default', async () => {
+    const requests: Array<{ method?: string; url?: string; bytes: number }> = []
+    const server = http.createServer((req, res) => {
+      const chunks: Buffer[] = []
+      req.on('data', (chunk) => chunks.push(chunk))
+      req.on('end', () => {
+        requests.push({
+          method: req.method,
+          url: req.url,
+          bytes: Buffer.concat(chunks).length,
+        })
+        res.statusCode = 200
+        res.end('ok')
+      })
+    })
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()))
+    const address = server.address()
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected TCP server address')
+    }
+
+    const signal = createBaseSignal({
+      traces: [{ type: 'otlp', endpoint: `http://127.0.0.1:${address.port}/otlp` }],
+      logs: [{ type: 'otlp', endpoint: `http://127.0.0.1:${address.port}/otlp` }],
+      metrics: [{ type: 'otlp', endpoint: `http://127.0.0.1:${address.port}/otlp` }],
+    })
+
+    const meters = signal.meter({
+      requests_total: {
+        type: 'counter',
+        unit: 'requests',
+        description: 'Total requests',
+      },
+    })
+
+    await signal.trace('job.process', async () => {
+      signal.log.info('hello from job')
+      meters.requests_total.add(1, { route: '/test' })
+    })
+
+    await signal.shutdown()
+    await new Promise<void>((resolve) => setTimeout(resolve, 100))
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    )
+
+    const urls = requests.map((request) => request.url)
+    expect(urls).toContain('/otlp/v1/traces')
+    expect(urls).toContain('/otlp/v1/logs')
+    expect(urls).toContain('/otlp/v1/metrics')
+    expect(requests.every((request) => request.bytes > 0)).toBe(true)
+  })
+
+  it('supports exact OTLP endpoint URLs when appendSignalPath is false', async () => {
+    const requests: Array<{ method?: string; url?: string; bytes: number }> = []
+    const server = http.createServer((req, res) => {
+      const chunks: Buffer[] = []
+      req.on('data', (chunk) => chunks.push(chunk))
+      req.on('end', () => {
+        requests.push({
+          method: req.method,
+          url: req.url,
+          bytes: Buffer.concat(chunks).length,
+        })
+        res.statusCode = 200
+        res.end('ok')
+      })
+    })
+
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()))
+    const address = server.address()
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected TCP server address')
+    }
+
+    const signal = createBaseSignal({
+      traces: [
+        {
+          type: 'otlp',
+          endpoint: `http://127.0.0.1:${address.port}/collector/custom-traces`,
+          appendSignalPath: false,
+        },
+      ],
+    })
+
+    await signal.trace('job.process', async () => {})
+    await signal.shutdown()
+    await new Promise<void>((resolve) => setTimeout(resolve, 100))
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    )
+
+    expect(requests.length).toBeGreaterThan(0)
+    expect(requests[0].url).toBe('/collector/custom-traces')
     expect(requests[0].bytes).toBeGreaterThan(0)
   })
 
