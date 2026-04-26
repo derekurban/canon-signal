@@ -13,6 +13,7 @@
  * the schema, sampling, or service config when needed.
  */
 
+import Fastify, { type FastifyInstance } from 'fastify'
 import { Hono } from 'hono'
 import { createSignal } from '../../src/factory/create.js'
 import type { SignalAttributes } from '../../src/types/attributes.js'
@@ -69,5 +70,27 @@ export function createHonoTestApp<T extends SignalAttributes = TestAttrs>(
   const { signal, harness } = createTestSignal<T>(options)
   const app = new Hono()
   app.use('*', signal.middleware({ framework: 'hono' }))
+  return { signal, harness, app }
+}
+
+/**
+ * Creates a signal, a harness, and a Fastify app with the middleware
+ * already registered. The Fastify equivalent of {@link createHonoTestApp}.
+ *
+ * Returns an `async` setup because `app.register(...)` is async — call
+ * sites should `await` this helper.
+ */
+export async function createFastifyTestApp<
+  T extends SignalAttributes = TestAttrs,
+>(
+  options: TestSignalOptions<T> = {},
+): Promise<{
+  signal: Signal<T>
+  harness: TestHarness<T>
+  app: FastifyInstance
+}> {
+  const { signal, harness } = createTestSignal<T>(options)
+  const app = Fastify({ logger: false })
+  await app.register(signal.middleware({ framework: 'fastify' }))
   return { signal, harness, app }
 }

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-04-26
+
+### Fixed
+
+- **Issue #4**: the Fastify adapter no longer deadlocks the request lifecycle. The previous implementation registered an async `onRequest` hook that awaited `reply.raw 'finish'` inside `store.run(ctx, handler)`. Fastify v4+ awaits async `onRequest` hooks before advancing to the route handler, so `'finish'` could never fire — every request hung until Fastify timed it out and returned 500. The adapter now uses an `onRoute` hook to wrap each route's handler in `handleRequest`, matching the structural shape of the Hono and Express adapters.
+- **Issue #4 (second half)**: `app.register(signal.middleware({ framework: 'fastify' }))` now actually instruments routes registered on the parent app. The previous implementation was an ordinary Fastify plugin, which Fastify wraps in an encapsulated child context by default — its hooks therefore only fired for routes registered *inside* that scope, so routes on the outer `app` were silently uninstrumented and `signal.attr()` inside their handlers threw "outside request scope". The plugin is now marked with `Symbol.for('skip-override')` so it escapes encapsulation and instruments the parent scope.
+
+### Added
+
+- Test coverage for the Fastify adapter: 12 tests in `tests/middleware/fastify.test.ts`, including an explicit non-deadlock assertion and an explicit encapsulation-escape assertion to prevent regressions of either half of issue #4.
+
 ## [0.2.1] - 2026-04-10
 
 ### Fixed
@@ -72,7 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discriminated union for `ExporterConfig` so the type system enforces required fields per exporter kind
 - 68 unit tests covering the full public API
 
-[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/derekurban/canon-signal/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/derekurban/canon-signal/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/derekurban/canon-signal/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/derekurban/canon-signal/compare/v0.1.0...v0.1.1

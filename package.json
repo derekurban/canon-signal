@@ -1,6 +1,6 @@
 {
   "name": "canon-signal",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Opinionated OpenTelemetry toolkit for Node.js/TypeScript — trace-first observability with typed canonical span schemas",
   "type": "module",
   "exports": {
@@ -119,6 +119,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "fastify": "^5.8.5",
     "hono": "^4.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.7.0",
