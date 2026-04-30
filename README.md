@@ -1062,7 +1062,7 @@ The release flow for maintainers:
    ```
 5. The publish workflow runs automatically. Verify the new version appears at `https://www.npmjs.com/package/canon-signal`.
 
-The publish workflow uses npm trusted publishing with `--access public --provenance`. Provenance and trusted publishing require the `id-token: write` permission and npm `11.5.1` or newer, both of which are configured in the workflow file. No `NPM_TOKEN` secret is required.
+The publish workflow uses npm trusted publishing with `--access public --provenance`. Provenance and trusted publishing require the `id-token: write` permission and npm `11.5.1` or newer; the workflow runs on Node 24 and verifies the npm version before publishing. No `NPM_TOKEN` secret is required.
 
 The npm package must have this GitHub repository and `.github/workflows/publish.yml` configured as a trusted publisher before pushing the release tag.
 

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Release publishing now upgrades npm to `11.5.1` or newer in GitHub Actions so npm trusted publishing can complete its OIDC authentication flow.
+- Release publishing now uses a Node 24 toolchain and verifies npm `11.5.1` or newer in GitHub Actions so npm trusted publishing can complete its OIDC authentication flow.
 - Normalized the package `bin` path to avoid npm auto-correcting package metadata during publish.
 
 ### Notes
