@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-30
+
+### Fixed
+
+- Release publishing now upgrades npm to `11.5.1` or newer in GitHub Actions so npm trusted publishing can complete its OIDC authentication flow.
+- Normalized the package `bin` path to avoid npm auto-correcting package metadata during publish.
+
+### Notes
+
+- v0.3.0 was tagged in Git but failed to publish to npm. v0.3.1 is the published Worker support release and includes the v0.3.0 changes below.
+
 ## [0.3.0] - 2026-04-30
 
 ### Added
@@ -99,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discriminated union for `ExporterConfig` so the type system enforces required fields per exporter kind
 - 68 unit tests covering the full public API
 
-[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/derekurban/canon-signal/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/derekurban/canon-signal/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/derekurban/canon-signal/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/derekurban/canon-signal/compare/v0.2.0...v0.2.1
