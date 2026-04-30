@@ -12,6 +12,9 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-proto'
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto'
 import type { OtlpExporterConfig } from '../types/config.js'
+import { resolveOtlpUrl } from './otlp-url.js'
+
+export { resolveOtlpUrl } from './otlp-url.js'
 
 /**
  * Resolves canon-signal's OTLP endpoint semantics into the exact URL
@@ -23,31 +26,6 @@ import type { OtlpExporterConfig } from '../types/config.js'
  * bridges that mismatch while preserving an explicit escape hatch for
  * unusual proxy routes via `appendSignalPath: false`.
  */
-function resolveOtlpUrl(
-  config: OtlpExporterConfig,
-  signalPath: '/v1/traces' | '/v1/logs' | '/v1/metrics',
-): string {
-  if (config.appendSignalPath === false) {
-    return config.endpoint
-  }
-
-  try {
-    const url = new URL(config.endpoint)
-    if (url.pathname.endsWith(signalPath)) {
-      return url.toString()
-    }
-
-    url.pathname = `${url.pathname.replace(/\/+$/, '')}${signalPath}`
-    return url.toString()
-  } catch {
-    if (config.endpoint.endsWith(signalPath)) {
-      return config.endpoint
-    }
-
-    return `${config.endpoint.replace(/\/+$/, '')}${signalPath}`
-  }
-}
-
 /**
  * Creates an OTLP trace exporter from user config.
  */

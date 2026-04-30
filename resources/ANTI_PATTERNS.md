@@ -6,6 +6,22 @@ When reviewing PRs or refactoring existing code, this document is your checklist
 
 ---
 
+## A0. Importing the Node entrypoint in Cloudflare Workers
+
+```typescript
+// BAD in Cloudflare Workers
+import { createSignal } from 'canon-signal'
+```
+
+```typescript
+// GOOD
+import { createWorkerSignal } from 'canon-signal/worker'
+```
+
+The root entrypoint is Node-only. Worker projects must preserve the Worker entrypoint and avoid Node auto-instrumentation, file exporters, metrics, and logger bridges. See `WORKERS.md`.
+
+---
+
 ## A1. Using `console.log` in request handlers
 
 ```typescript

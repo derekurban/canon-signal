@@ -537,6 +537,42 @@ export: {
 
 ---
 
+## Pattern 16: Cloudflare Worker setup
+
+Worker apps import from `canon-signal/worker`, pass bindings through `env`, and register Hono middleware from a lazily-created signal instance.
+
+```typescript
+import { Hono } from 'hono'
+import { createWorkerSignal, type SignalAttributes } from 'canon-signal/worker'
+
+interface Env {
+  NODE_ENV?: string
+  OTEL_EXPORTER_OTLP_ENDPOINT?: string
+}
+
+interface AppAttributes extends SignalAttributes {
+  'app.user.id'?: string
+}
+
+let signal: ReturnType<typeof createWorkerSignal<AppAttributes>> | undefined
+
+function getSignal(env: Env) {
+  signal ??= createWorkerSignal<AppAttributes>({
+    env,
+    service: { name: 'api-worker', version: '1.0.0', environment: env.NODE_ENV ?? 'production' },
+    schema: { version: '1.0.0' },
+  })
+  return signal
+}
+
+const app = new Hono<{ Bindings: Env }>()
+app.use('*', (c, next) => getSignal(c.env).middleware()(c, next))
+```
+
+**Why**: Workers do not expose Node `process.env`, and the root `canon-signal` entrypoint is Node-only. See `WORKERS.md` before changing Worker instrumentation.
+
+---
+
 ## Pattern 16: Bridging an existing logger
 
 If your project already uses Pino or Winston, the bridge converts their output into OTel LogRecords with auto-attached trace context.

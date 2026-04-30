@@ -71,10 +71,12 @@ export function createFastifyPlugin<T extends SignalAttributes>(
   tracer: Tracer,
   schemaVersion: string,
   options: MiddlewareOptions<T>,
+  generateRequestId: () => string,
 ) {
   const handleRequest = createRequestHandler<T>(store, tracer, {
     schemaVersion,
     options,
+    generateRequestId,
   })
 
   function fastifyPlugin(fastify: any, _opts: any, done: () => void) {

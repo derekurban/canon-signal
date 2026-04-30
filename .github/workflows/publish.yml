@@ -5,13 +5,11 @@ name: Publish to npm
 # the package to npm with provenance attestations.
 #
 # Setup required (one-time, when the repo is first created):
-# 1. Generate an automation token at https://www.npmjs.com/settings/<your-user>/tokens/granular-access-tokens/new
-#    - Type: Granular Access Token
-#    - Permissions: Read and write for `canon-signal`
-# 2. Add it to the repo secrets as NPM_TOKEN:
-#    Settings → Secrets and variables → Actions → New repository secret
-# 3. The first publish must be done manually with `npm publish --access public`
-#    to claim the unscoped package name. Subsequent publishes can use this workflow.
+# 1. Add this repository/workflow as a trusted publisher for the
+#    `canon-signal` package in npm.
+# 2. Keep `id-token: write` below so GitHub can exchange an OIDC token
+#    with npm during `npm publish --provenance`.
+# 3. No NPM_TOKEN secret is required for this workflow.
 #
 # Releasing a new version:
 # 1. Update the version in package.json
@@ -86,11 +84,7 @@ jobs:
       - name: Publish to npm (dry run)
         if: github.event.inputs.dry_run == 'true'
         run: npm publish --dry-run --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to npm
         if: github.event.inputs.dry_run != 'true'
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

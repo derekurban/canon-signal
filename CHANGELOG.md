@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-30
+
+### Added
+
+- Cloudflare Workers support via the new `canon-signal/worker` entrypoint.
+- `createWorkerSignal<T>()` with Hono middleware, manual traces/spans, attributes, events, errors, sampling, structured logs, `flush()`, and the test harness.
+- Worker-safe OTLP trace and log exporters that send protobuf payloads with `fetch`.
+- Worker CLI scaffolding via `npx canon-signal create --runtime worker` and `npx canon-signal create --worker`.
+- Worker documentation in `resources/WORKERS.md`, README, tutorial, CLI help, and installed agent docs.
+- Worker runtime tests, OTLP fetch tests, and a bundle guard that prevents Node-only imports from entering the Worker entrypoint.
+
+### Changed
+
+- Shared span and middleware internals now parent manual spans explicitly from canon-signal's request scope, reducing reliance on Node-specific OTel context behavior.
+- OTLP URL resolution is split into a transport-neutral helper so Worker code does not import Node OTLP exporter modules.
+
 ## [0.2.2] - 2026-04-26
 
 ### Fixed
@@ -83,7 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discriminated union for `ExporterConfig` so the type system enforces required fields per exporter kind
 - 68 unit tests covering the full public API
 
-[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/derekurban/canon-signal/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/derekurban/canon-signal/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/derekurban/canon-signal/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/derekurban/canon-signal/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/derekurban/canon-signal/compare/v0.1.1...v0.2.0

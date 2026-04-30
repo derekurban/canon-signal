@@ -6,7 +6,7 @@
  */
 
 import type { Tracer, Span } from '@opentelemetry/api'
-import { SpanStatusCode } from '@opentelemetry/api'
+import { context, SpanStatusCode, trace } from '@opentelemetry/api'
 import type { SignalStore, SignalContext } from '../context/store.js'
 import { getContext } from '../context/scope.js'
 
@@ -33,23 +33,25 @@ import { getContext } from '../context/scope.js'
 export function createSpanFn(store: SignalStore, tracer: Tracer) {
   return async function span<R>(name: string, fn: (span: Span) => R | Promise<R>): Promise<R> {
     const ctx = getContext(store)
-    return tracer.startActiveSpan(name, async (childSpan) => {
-      const childCtx: SignalContext = {
-        rootSpan: ctx.rootSpan,
-        activeSpan: childSpan,
-        traceId: ctx.traceId,
-        attributes: ctx.attributes,
-      }
-      try {
-        const result = await store.run(childCtx, () => fn(childSpan))
-        childSpan.end()
-        return result
-      } catch (err) {
-        childSpan.recordException(err as Error)
-        childSpan.setStatus({ code: SpanStatusCode.ERROR })
-        childSpan.end()
-        throw err
-      }
-    })
+    const parentContext = trace.setSpan(context.active(), ctx.activeSpan)
+    const childSpan = tracer.startSpan(name, undefined, parentContext)
+    const childContext = trace.setSpan(parentContext, childSpan)
+    const childCtx: SignalContext = {
+      rootSpan: ctx.rootSpan,
+      activeSpan: childSpan,
+      traceId: ctx.traceId,
+      attributes: ctx.attributes,
+    }
+
+    try {
+      const result = await context.with(childContext, () => store.run(childCtx, () => fn(childSpan)))
+      childSpan.end()
+      return result
+    } catch (err) {
+      childSpan.recordException(err as Error)
+      childSpan.setStatus({ code: SpanStatusCode.ERROR })
+      childSpan.end()
+      throw err
+    }
   }
 }

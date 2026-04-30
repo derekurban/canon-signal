@@ -79,6 +79,18 @@ For OTLP destinations, `endpoint` is treated as a base collector URL by default 
 | `CANON_SIGNAL_SAMPLE_RATE` | Overrides `sampling.defaultRate` (parsed as float) |
 | `CANON_SIGNAL_DEBUG` | Forces `defaultRate` to `1.0` (keep everything). Truthy values: `1`, `true`, `yes`. |
 
+### `createWorkerSignal<T>(options): WorkerSignal<T>`
+
+Cloudflare Worker-compatible factory exported from `canon-signal/worker`. It supports the same trace, attribute, event, error, logging, sampling, middleware, schema, shutdown, and test harness APIs as the Node signal, plus `flush()`.
+
+Worker differences:
+
+- Pass Worker bindings through `options.env`; Worker code must not depend on `process.env`.
+- Hono is the only supported middleware adapter.
+- OTLP trace/log export uses `fetch`.
+- Metrics, file exporters, Node auto-instrumentation, `canon-signal/auto`, and logger bridges are Node-only.
+- Enable Cloudflare `nodejs_als` or `nodejs_compat`. See `WORKERS.md`.
+
 **Example**:
 
 ```typescript

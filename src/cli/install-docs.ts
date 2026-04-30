@@ -135,6 +135,7 @@ This project uses [\`canon-signal\`](https://github.com/anthropics/canon-signal)
 4. **\`.canon-signal/PATTERNS.md\`** — Working code examples for common scenarios.
 5. **\`.canon-signal/ANTI_PATTERNS.md\`** — Things that look right but violate the principles.
 6. **\`.canon-signal/TROUBLESHOOTING.md\`** — Common errors and fixes.
+7. **\`.canon-signal/WORKERS.md\`** — Cloudflare Worker setup and Node-only limitations.
 
 ## The non-negotiables
 
@@ -142,6 +143,7 @@ This project uses [\`canon-signal\`](https://github.com/anthropics/canon-signal)
 - **Never bypass the \`AppAttributes\` schema.** New attributes must be added to the interface before they can be used.
 - **Span names must be low-cardinality.** \`payment.process\` is valid; \`payment.process.\${userId}\` is not.
 - **Always run tests after changing instrumentation.** The test harness catches drift.
+- **Check the runtime before adding integrations.** Worker projects use \`canon-signal/worker\` and cannot use Node-only exporters, bridges, or auto-instrumentation.
 - **Read the constitution before disagreeing with a design decision.** The reasoning is documented.
 
 ## Updating these docs

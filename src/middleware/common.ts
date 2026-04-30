@@ -32,9 +32,8 @@
  *    the response in both success and error paths.
  */
 
-import { SpanStatusCode, trace, type Span } from '@opentelemetry/api'
+import { context, SpanStatusCode, trace, type Span } from '@opentelemetry/api'
 import type { Tracer } from '@opentelemetry/api'
-import { randomUUID } from 'node:crypto'
 import type { SignalStore, SignalContext } from '../context/store.js'
 import type { SignalAttributes } from '../types/attributes.js'
 import type { MiddlewareOptions } from '../types/config.js'
@@ -55,6 +54,7 @@ export interface ResponseInfo {
 export interface MiddlewareConfig<T extends SignalAttributes> {
   schemaVersion: string
   options: MiddlewareOptions<T>
+  generateRequestId: () => string
 }
 
 /**
@@ -107,11 +107,7 @@ export function createRequestHandler<T extends SignalAttributes>(
   config: MiddlewareConfig<T>,
 ) {
   const requestIdHeader = config.options.requestIdHeader ?? 'x-request-id'
-  // Use the explicit `node:crypto` import rather than the global `crypto`
-  // because the Web Crypto API on `globalThis.crypto` was only unflagged
-  // in Node 19+. We claim Node 18 support in package.json `engines`, so
-  // we must not depend on the global.
-  const generateRequestId = config.options.generateRequestId ?? (() => randomUUID())
+  const generateRequestId = config.options.generateRequestId ?? config.generateRequestId
 
   return async function handleRequest(
     request: RequestInfo,
@@ -130,7 +126,10 @@ export function createRequestHandler<T extends SignalAttributes>(
 
     // No auto-instrumented span — create our own and end it ourselves.
     const spanName = `${request.method} ${request.route}`
-    return tracer.startActiveSpan(spanName, (rootSpan) => runWithSpan(rootSpan, /* shouldEnd */ true))
+    const rootSpan = tracer.startSpan(spanName)
+    return context.with(trace.setSpan(context.active(), rootSpan), () =>
+      runWithSpan(rootSpan, /* shouldEnd */ true),
+    )
 
     /**
      * Inner function that does the actual scope/attribute/error work.

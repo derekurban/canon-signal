@@ -6,6 +6,12 @@ Common errors and their fixes. Search for the error message you're seeing.
 
 ## Runtime errors
 
+### Worker bundle fails on Node modules
+
+**Cause**: Worker code imported from `canon-signal` instead of `canon-signal/worker`, or added a Node-only feature such as file export, auto-instrumentation, metrics, or Pino/Winston bridges.
+
+**Fix**: Import `createWorkerSignal` from `canon-signal/worker`, enable Cloudflare `nodejs_als` or `nodejs_compat`, and keep Worker instrumentation to Hono middleware plus trace/log exporters. See `WORKERS.md`.
+
 ### `canon-signal: Called outside a request scope. Wrap your code in signal.middleware() or signal.trace().`
 
 **What it means**: You called `signal.attr`, `signal.attrs`, `signal.getAttr`, `signal.span`, `signal.event`, `signal.error`, or `signal.keep` from a code path that isn't inside a request scope.

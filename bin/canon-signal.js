@@ -48,6 +48,8 @@ function printHelp() {
   console.log()
   console.log('Usage:')
   console.log('  npx canon-signal create')
+  console.log('  npx canon-signal create --runtime worker')
+  console.log('  npx canon-signal create --worker')
   console.log('  npx canon-signal install-docs            # write to ./.canon-signal/')
   console.log('  npx canon-signal install-docs --force    # overwrite existing')
   console.log('  npx canon-signal install-docs --no-agents-md  # skip root AGENTS.md')
@@ -65,8 +67,14 @@ function printHelp() {
 
 switch (command) {
   case 'create': {
+    const flags = parseFlags(args.slice(1))
     loadCli('../dist/cli/create.js', '../dist/cli/create.cjs')
-      .then(({ runCreate }) => runCreate(process.cwd()))
+      .then(({ runCreate }) =>
+        runCreate({
+          cwd: process.cwd(),
+          runtime: flags.worker === true ? 'worker' : flags.runtime,
+        }),
+      )
       .catch((err) => {
         console.error(err)
         process.exit(1)

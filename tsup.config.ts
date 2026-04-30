@@ -4,6 +4,7 @@ export default defineConfig([
   {
     entry: {
       index: 'src/index.ts',
+      worker: 'src/worker.ts',
       auto: 'src/auto.ts',
       'cli/create': 'src/cli/create.ts',
       'cli/install-docs': 'src/cli/install-docs.ts',

@@ -34,6 +34,7 @@ import { LoggerProvider, SimpleLogRecordProcessor } from '@opentelemetry/sdk-log
 import { logs } from '@opentelemetry/api-logs'
 import { metrics } from '@opentelemetry/api'
 import { MeterProvider } from '@opentelemetry/sdk-metrics'
+import { randomUUID } from 'node:crypto'
 
 /**
  * The `deployment.environment.name` semantic convention attribute key.
@@ -212,7 +213,7 @@ export function createSignal<T extends SignalAttributes>(
   const signal: Signal<T> = {
     shutdown: createShutdownFn({ tracerProvider, loggerProvider, meterProvider }),
 
-    middleware: createMiddlewareFn<T>(store, tracer, config.schemaVersion),
+    middleware: createMiddlewareFn<T>(store, tracer, config.schemaVersion, randomUUID),
 
     // Spreads attr, attrs, getAttr, traceId from the consolidated builder.
     ...createAttrInstrumentation<T>(store),

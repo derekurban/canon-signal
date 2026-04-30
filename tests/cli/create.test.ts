@@ -58,4 +58,20 @@ describe('canon-signal create', () => {
     expect(() => runCreate(testDir)).toThrow('process.exit called')
     mockExit.mockRestore()
   })
+
+  it('generates a Worker setup file when requested', () => {
+    mkdirSync(testDir, { recursive: true })
+    writeFileSync(
+      resolve(testDir, 'package.json'),
+      JSON.stringify({ name: 'worker-app', version: '3.0.0', dependencies: { hono: '^4.0.0' } }),
+    )
+
+    runCreate({ cwd: testDir, runtime: 'worker' })
+
+    const content = readFileSync(resolve(testDir, 'src', 'signal.ts'), 'utf-8')
+    expect(content).toContain("from 'canon-signal/worker'")
+    expect(content).toContain('createWorkerSignal')
+    expect(content).toContain('getSignal(c.env).middleware()')
+    expect(content).not.toContain("process.env.NODE_ENV")
+  })
 })

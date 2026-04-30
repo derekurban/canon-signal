@@ -18,6 +18,8 @@ Read these in order on your first pass:
 
 6. **[`TROUBLESHOOTING.md`](./TROUBLESHOOTING.md)** — Common errors and their fixes. Reference when something goes wrong.
 
+7. **[`WORKERS.md`](./WORKERS.md)** — Cloudflare Worker setup, supported features, and Node-only limitations.
+
 ## How to use these docs
 
 **When writing new instrumentation code**: Check `PATTERNS.md` for the right shape, then `PLAYBOOK.md` for the rules, then `API.md` for the exact signatures.
@@ -40,6 +42,7 @@ The project you're working in has canon-signal installed and is using it for obs
 
 - A `src/signal.ts` file (or similar) that calls `createSignal<AppAttributes>({...})` and exports a `signal` instance
 - Middleware registered on the application's HTTP framework (Hono, Express, Fastify, or Next.js)
+- Worker projects import from `canon-signal/worker` and use Hono middleware only
 - An `AppAttributes` interface extending `SignalAttributes` that defines every attribute the service emits
 - Tests using the `signal.test.harness()` to verify instrumentation
 

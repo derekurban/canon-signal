@@ -299,6 +299,10 @@ For handlers where the schema declares `required: ['app.request.id', ...]`, call
 
 ## Code organization rules
 
+### O0. In Cloudflare Workers, use `canon-signal/worker`.
+
+Worker projects must keep the Worker entrypoint and Hono adapter. Do not add Node auto-instrumentation, file exporters, metrics, or logger bridges in Worker code. See `WORKERS.md`.
+
 ### O1. The signal instance is created once.
 
 Exactly one `createSignal()` call per project, in a dedicated setup file (typically `src/signal.ts`). Every other file imports the exported instance. No multiple signals, no global mutation.

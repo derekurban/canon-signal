@@ -1,6 +1,6 @@
 {
   "name": "canon-signal",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Opinionated OpenTelemetry toolkit for Node.js/TypeScript — trace-first observability with typed canonical span schemas",
   "type": "module",
   "exports": {
@@ -52,6 +52,16 @@
       "require": {
         "types": "./dist/auto.d.cts",
         "default": "./dist/auto.cjs"
+      }
+    },
+    "./worker": {
+      "import": {
+        "types": "./dist/worker.d.ts",
+        "default": "./dist/worker.js"
+      },
+      "require": {
+        "types": "./dist/worker.d.cts",
+        "default": "./dist/worker.cjs"
       }
     }
   },
@@ -109,6 +119,7 @@
     "@opentelemetry/exporter-logs-otlp-proto": "^0.57.0",
     "@opentelemetry/exporter-metrics-otlp-proto": "^0.57.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.57.0",
+    "@opentelemetry/otlp-transformer": "^0.57.0",
     "@opentelemetry/resources": "^1.30.0",
     "@opentelemetry/sdk-logs": "^0.57.0",
     "@opentelemetry/sdk-metrics": "^1.30.0",

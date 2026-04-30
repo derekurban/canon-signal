@@ -897,6 +897,21 @@ app.<span class="tok-function">get</span>(<span class="tok-string">'/hello'</spa
 
 <hr>
 
+<h2 id="workers">Cloudflare Workers</h2>
+
+<p>Cloudflare Worker apps use the dedicated <code>canon-signal/worker</code> entrypoint. Do not import from the Node root entrypoint in a Worker bundle.</p>
+
+<pre><code><span class="tok-keyword">import</span> { createWorkerSignal } <span class="tok-keyword">from</span> <span class="tok-string">'canon-signal/worker'</span></code></pre>
+
+<p>Enable Cloudflare's <code>nodejs_als</code> or <code>nodejs_compat</code> compatibility flag with compatibility date <code>2024-09-23</code> or later, then register the Hono middleware normally. Worker export supports traces and logs over OTLP using <code>fetch</code>. Metrics, file exporters, auto-instrumentation, <code>canon-signal/auto</code>, and Pino/Winston bridges are Node-only.</p>
+
+<pre><code>compatibility_date = <span class="tok-string">"2024-09-23"</span>
+compatibility_flags = [<span class="tok-string">"nodejs_als"</span>]</code></pre>
+
+<p>Run <code>npx canon-signal create --runtime worker</code> to generate a Worker-oriented setup file, and read <code>resources/WORKERS.md</code> for the full compatibility notes.</p>
+
+<hr>
+
 <h2 id="next">Where to go from here</h2>
 
 <p>You now have enough to use canon-signal productively. The full feature set has more depth — sampling rules, metrics, logger bridges, the inspect CLI, agent debugging tools — but everything builds on the concepts you just learned.</p>

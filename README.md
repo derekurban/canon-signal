@@ -8,7 +8,7 @@
 npm install canon-signal
 ```
 
-One install. No OTel dependency puzzle. Dual ESM/CJS. Node.js 18+.
+One install. No OTel dependency puzzle. Dual ESM/CJS. Node.js 18+. Cloudflare Workers use the dedicated `canon-signal/worker` entrypoint.
 
 ---
 
@@ -54,6 +54,8 @@ That's the entire setup. You now have:
 - Pretty waterfall rendering in dev, OTLP export in production
 - A custom `SpanProcessor` that automatically computes `app.db.total_duration_ms` and `app.db.query_count` on every root span
 
+Cloudflare Workers are supported through `canon-signal/worker`. Worker projects keep the typed trace-first API, but use a Worker-safe provider/exporter stack and do not load Node auto-instrumentation.
+
 ---
 
 ## Core principles
@@ -69,6 +71,32 @@ That's the entire setup. You now have:
 5. **One factory, one instance.** No global state, no module-level singletons. Each `createSignal()` call returns a fully encapsulated signal object you import everywhere.
 
 The full philosophy lives in [`resources/CONSTITUTION.md`](./resources/CONSTITUTION.md).
+
+---
+
+## Cloudflare Workers
+
+Worker projects must import from `canon-signal/worker`, not the Node root entrypoint. Enable Cloudflare `nodejs_als` or `nodejs_compat` with compatibility date `2024-09-23` or later.
+
+```toml
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_als"]
+```
+
+```typescript
+import { createWorkerSignal, type SignalAttributes } from 'canon-signal/worker'
+
+export const signal = createWorkerSignal<SignalAttributes>({
+  service: { name: 'my-worker', version: '1.0.0', environment: 'production' },
+  schema: { version: '1.0.0' },
+  export: {
+    traces: [{ type: 'otlp', endpoint: 'https://collector.example' }],
+    logs: [{ type: 'otlp', endpoint: 'https://collector.example' }],
+  },
+})
+```
+
+Worker v1 supports Hono middleware, manual spans, attributes, events, errors, logs, OTLP trace/log export over `fetch`, and the test harness. Node auto-instrumentation, file exporters, metrics, `canon-signal/auto`, and Pino/Winston bridges are Node-only. See [`resources/WORKERS.md`](./resources/WORKERS.md).
 
 ---
 
@@ -133,7 +161,7 @@ export const signal = createSignal<AppAttributes>({
 })
 ```
 
-> Don't want to write this by hand? Run `npx canon-signal create` and it will generate the file for you, detecting your framework and pulling the service name/version from `package.json`.
+> Don't want to write this by hand? Run `npx canon-signal create` and it will generate the file for you, detecting your framework and pulling the service name/version from `package.json`. For Cloudflare Workers, run `npx canon-signal create --runtime worker`.
 
 ### 3. Register middleware
 
@@ -1034,9 +1062,9 @@ The release flow for maintainers:
    ```
 5. The publish workflow runs automatically. Verify the new version appears at `https://www.npmjs.com/package/canon-signal`.
 
-The publish workflow uses `--access public --provenance`. Provenance requires the `id-token: write` permission, which is configured in the workflow file. The `NPM_TOKEN` secret must be set in the repo settings (one-time setup with a granular access token from npmjs.com).
+The publish workflow uses npm trusted publishing with `--access public --provenance`. Provenance and trusted publishing require the `id-token: write` permission, which is configured in the workflow file. No `NPM_TOKEN` secret is required.
 
-The first publish must be done manually (`npm publish --access public`) to claim the unscoped package name. After that, subsequent publishes use the workflow.
+The npm package must have this GitHub repository and `.github/workflows/publish.yml` configured as a trusted publisher before pushing the release tag.
 
 ---
 

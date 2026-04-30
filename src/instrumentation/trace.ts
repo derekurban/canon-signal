@@ -6,7 +6,7 @@
  * consumers.
  */
 
-import { type Tracer, SpanStatusCode, ROOT_CONTEXT, SpanKind } from '@opentelemetry/api'
+import { type Tracer, context, SpanStatusCode, ROOT_CONTEXT, SpanKind, trace as otelTrace } from '@opentelemetry/api'
 import type { SignalStore, SignalContext } from '../context/store.js'
 import type { TraceOptions } from '../types/signal.js'
 
@@ -53,7 +53,7 @@ export function createTraceFn(store: SignalStore, tracer: Tracer, schemaVersion:
   ): Promise<R> {
     const spanKind = options?.kind ? SPAN_KIND_MAP[options.kind] : SpanKind.INTERNAL
 
-    return tracer.startActiveSpan(
+    const rootSpan = tracer.startSpan(
       name,
       {
         kind: spanKind,
@@ -61,28 +61,27 @@ export function createTraceFn(store: SignalStore, tracer: Tracer, schemaVersion:
         root: true,
       },
       ROOT_CONTEXT,
-      async (rootSpan) => {
-        const traceId = rootSpan.spanContext().traceId
-        const ctx: SignalContext = {
-          rootSpan,
-          activeSpan: rootSpan,
-          traceId,
-          attributes: new Map(),
-        }
-
-        rootSpan.setAttribute('app.schema.version', schemaVersion)
-
-        try {
-          const result = await store.run(ctx, fn)
-          rootSpan.end()
-          return result
-        } catch (err) {
-          rootSpan.recordException(err as Error)
-          rootSpan.setStatus({ code: SpanStatusCode.ERROR })
-          rootSpan.end()
-          throw err
-        }
-      },
     )
+    const traceId = rootSpan.spanContext().traceId
+    const ctx: SignalContext = {
+      rootSpan,
+      activeSpan: rootSpan,
+      traceId,
+      attributes: new Map(),
+    }
+
+    rootSpan.setAttribute('app.schema.version', schemaVersion)
+
+    try {
+      const activeContext = otelTrace.setSpan(ROOT_CONTEXT, rootSpan)
+      const result = await context.with(activeContext, () => store.run(ctx, fn))
+      rootSpan.end()
+      return result
+    } catch (err) {
+      rootSpan.recordException(err as Error)
+      rootSpan.setStatus({ code: SpanStatusCode.ERROR })
+      rootSpan.end()
+      throw err
+    }
   }
 }

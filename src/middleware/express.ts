@@ -43,10 +43,12 @@ export function createExpressMiddleware<T extends SignalAttributes>(
   tracer: Tracer,
   schemaVersion: string,
   options: MiddlewareOptions<T>,
+  generateRequestId: () => string,
 ) {
   const handleRequest = createRequestHandler<T>(store, tracer, {
     schemaVersion,
     options,
+    generateRequestId,
   })
 
   return function expressMiddleware(req: any, res: any, next: (err?: any) => void) {

@@ -42,6 +42,7 @@ export function createMiddlewareFn<T extends SignalAttributes>(
   store: SignalStore,
   tracer: Tracer,
   schemaVersion: string,
+  generateRequestId: () => string,
 ) {
   return function middleware(options?: MiddlewareOptions<T>): any {
     const framework = options?.framework ?? 'hono'
@@ -49,13 +50,13 @@ export function createMiddlewareFn<T extends SignalAttributes>(
 
     switch (framework) {
       case 'hono':
-        return createHonoMiddleware(store, tracer, schemaVersion, opts)
+        return createHonoMiddleware(store, tracer, schemaVersion, opts, generateRequestId)
       case 'express':
-        return createExpressMiddleware(store, tracer, schemaVersion, opts)
+        return createExpressMiddleware(store, tracer, schemaVersion, opts, generateRequestId)
       case 'fastify':
-        return createFastifyPlugin(store, tracer, schemaVersion, opts)
+        return createFastifyPlugin(store, tracer, schemaVersion, opts, generateRequestId)
       case 'next':
-        return createNextMiddleware(store, tracer, schemaVersion, opts)
+        return createNextMiddleware(store, tracer, schemaVersion, opts, generateRequestId)
       default:
         throw new Error(`canon-signal: Framework "${framework}" is not supported.`)
     }
