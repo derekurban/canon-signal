@@ -75,7 +75,7 @@
     "CHANGELOG.md"
   ],
   "bin": {
-    "canon-signal": "./bin/canon-signal.js"
+    "canon-signal": "bin/canon-signal.js"
   },
   "scripts": {
     "build": "tsup",

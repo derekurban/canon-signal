@@ -9,7 +9,9 @@ name: Publish to npm
 #    `canon-signal` package in npm.
 # 2. Keep `id-token: write` below so GitHub can exchange an OIDC token
 #    with npm during `npm publish --provenance`.
-# 3. No NPM_TOKEN secret is required for this workflow.
+# 3. Keep npm at 11.5.1 or newer; trusted publishing depends on npm's
+#    OIDC exchange support.
+# 4. No NPM_TOKEN secret is required for this workflow.
 #
 # Releasing a new version:
 # 1. Update the version in package.json
@@ -49,11 +51,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Use the latest LTS for publishing — this Node version
-          # builds the package, it doesn't constrain consumers.
+          # This Node version builds and publishes the package; it
+          # doesn't constrain consumers.
           node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
+
+      - name: Upgrade npm for trusted publishing
+        run: |
+          npm install --global npm@^11.5.1
+          npm --version
 
       - name: Install dependencies
         run: npm ci
